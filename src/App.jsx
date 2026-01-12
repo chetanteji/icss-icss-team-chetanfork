@@ -4,7 +4,7 @@ import "./App.css";
 import ProgramOverview from "./Components/ProgramOverview";
 import LecturerOverview from "./Components/LecturerOverview";
 import GroupOverview from "./Components/GroupOverview";
-
+import ScheduleOverview from "./Components/ScheduleOverview";
 
 export default function App() {
   const [page, setPage] = useState("programs");
@@ -15,14 +15,9 @@ export default function App() {
 
       <div className="page-container">
         {page === "programs" && <ProgramOverview />}
-        {page === "lecturers" && <LecturerOverview />}
         {page === "groups" && <GroupOverview />}
-        {page === "schedule" && (
-          <div className="panel">
-            <h2>Schedule Overview</h2>
-            <p>Coming soon...</p>
-          </div>
-        )}
+        {page === "lecturers" && <LecturerOverview />}
+        {page === "schedule" && <ScheduleOverview />}
       </div>
     </div>
   );
@@ -30,9 +25,11 @@ export default function App() {
 
 function Topbar({ page, setPage }) {
   const tabs = ["programs", "groups", "lecturers", "schedule"];
+
   return (
     <div className="topbar">
       <div className="logo">CS2</div>
+
       <div className="nav">
         {tabs.map((tab) => (
           <button
@@ -44,6 +41,7 @@ function Topbar({ page, setPage }) {
           </button>
         ))}
       </div>
+
       <div className="user">👤</div>
     </div>
   );
