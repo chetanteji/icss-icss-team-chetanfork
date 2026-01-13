@@ -5,7 +5,6 @@ from sqlalchemy.sql import func
 
 from database import Base
 
-
 class StudyProgram(Base):
     __tablename__ = "study_programs"
 
@@ -74,7 +73,7 @@ class Group(Base):
 
 
 # =========================================================
-# SCHEDULER CONSTRAINTS (NEW)
+# SCHEDULER CONSTRAINTS
 # =========================================================
 
 class ConstraintType(Base):
@@ -83,7 +82,7 @@ class ConstraintType(Base):
     id = Column(Integer, primary_key=True, index=True)
     code = Column(String(80), unique=True, nullable=False)
     description = Column(Text, nullable=False)
-    default_hardness = Column(String(10), nullable=False)  # HARD / SOFT (enforced by DB enum)
+    default_hardness = Column(String(10), nullable=False)
     is_active = Column(Boolean, nullable=False, server_default="true")
     created_at = Column(DateTime, nullable=False, server_default=func.now())
 
@@ -106,10 +105,10 @@ class SchedulerConstraint(Base):
 
     constraint_type_id = Column(Integer, ForeignKey("constraint_types.id"), nullable=False)
 
-    hardness = Column(String(10), nullable=False)  # HARD / SOFT
+    hardness = Column(String(10), nullable=False)
     weight = Column(Integer, nullable=True)
 
-    scope = Column(String(20), nullable=False)  # GLOBAL, LECTURER, GROUP, MODULE, ROOM, PROGRAM, SPECIALIZATION
+    scope = Column(String(20), nullable=False)
     target_id = Column(Integer, nullable=True)
 
     config = Column(JSONB, nullable=False, server_default="{}")

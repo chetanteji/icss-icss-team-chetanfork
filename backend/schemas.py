@@ -7,6 +7,7 @@ class SpecializationCreate(BaseModel):
     acronym: str
     start_date: str
     is_active: bool
+    program_id: int  # <--- ADDED THIS so the backend knows which program it belongs to
 
 
 class SpecializationResponse(SpecializationCreate):
@@ -88,7 +89,7 @@ class GroupResponse(GroupCreate):
 
 
 # =========================================================
-# SCHEDULER CONSTRAINTS (NEW)
+# SCHEDULER CONSTRAINTS
 # =========================================================
 
 Hardness = Literal["HARD", "SOFT"]

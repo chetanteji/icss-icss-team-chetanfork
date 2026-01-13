@@ -1,99 +1,93 @@
-const BASE_URL = "http://127.0.0.1:8000";
+import axios from "axios";
 
-async function request(path, options = {}) {
-  const res = await fetch(`${BASE_URL}${path}`, {
-    headers: { "Content-Type": "application/json", ...(options.headers || {}) },
-    ...options,
-  });
-
-  if (!res.ok) {
-    const txt = await res.text().catch(() => "");
-    throw new Error(`${res.status} ${res.statusText} - ${txt}`);
-  }
-
-  const text = await res.text();
-  return text ? JSON.parse(text) : null;
-}
+// Make sure this points to your Python backend port (8000)
+const API_URL = "http://localhost:8000";
 
 const api = {
-  // ---------- PROGRAMS ----------
-  getPrograms() {
-    return request("/study-programs/");
+  // --- Study Programs ---
+  getPrograms: async () => {
+    const response = await axios.get(`${API_URL}/study-programs/`);
+    return response.data;
   },
-  createProgram(payload) {
-    return request("/study-programs/", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
+  createProgram: async (data) => {
+    const response = await axios.post(`${API_URL}/study-programs/`, data);
+    return response.data;
   },
-  updateProgram(id, payload) {
-    return request(`/study-programs/${id}`, {
-      method: "PUT",
-      body: JSON.stringify(payload),
-    });
+  updateProgram: async (id, data) => {
+    const response = await axios.put(`${API_URL}/study-programs/${id}`, data);
+    return response.data;
   },
-  deleteProgram(id) {
-    return request(`/study-programs/${id}`, { method: "DELETE" });
+  deleteProgram: async (id) => {
+    const response = await axios.delete(`${API_URL}/study-programs/${id}`);
+    return response.data;
   },
 
-  // ---------- MODULES ----------
-  getModules() {
-    return request("/modules/");
+  // --- SPECIALIZATIONS ---
+  createSpecialization: async (data) => {
+    const response = await axios.post(`${API_URL}/specializations/`, data);
+    return response.data;
   },
-  createModule(payload) {
-    return request("/modules/", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
+  updateSpecialization: async (id, data) => {
+    const response = await axios.put(`${API_URL}/specializations/${id}`, data);
+    return response.data;
   },
-  updateModule(id, payload) {
-    return request(`/modules/${id}`, {
-      method: "PUT",
-      body: JSON.stringify(payload),
-    });
-  },
-  deleteModule(id) {
-    return request(`/modules/${id}`, { method: "DELETE" });
+  deleteSpecialization: async (id) => {
+    const response = await axios.delete(`${API_URL}/specializations/${id}`);
+    return response.data;
   },
 
-  // ---------- LECTURERS ----------
-  getLecturers() {
-    return request("/lecturers/");
+  // --- Lecturers ---
+  getLecturers: async () => {
+    const response = await axios.get(`${API_URL}/lecturers/`);
+    return response.data;
   },
-  createLecturer(payload) {
-    return request("/lecturers/", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
+  createLecturer: async (data) => {
+    const response = await axios.post(`${API_URL}/lecturers/`, data);
+    return response.data;
   },
-  updateLecturer(id, payload) {
-    return request(`/lecturers/${id}`, {
-      method: "PUT",
-      body: JSON.stringify(payload),
-    });
+  updateLecturer: async (id, data) => {
+    const response = await axios.put(`${API_URL}/lecturers/${id}`, data);
+    return response.data;
   },
-  deleteLecturer(id) {
-    return request(`/lecturers/${id}`, { method: "DELETE" });
+  deleteLecturer: async (id) => {
+    const response = await axios.delete(`${API_URL}/lecturers/${id}`);
+    return response.data;
   },
 
-  // ---------- GROUPS ----------
-  getGroups() {
-    return request("/groups/");
+  // --- Groups ---
+  getGroups: async () => {
+    const response = await axios.get(`${API_URL}/groups/`);
+    return response.data;
   },
-  createGroup(payload) {
-    return request("/groups/", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
+  createGroup: async (data) => {
+    const response = await axios.post(`${API_URL}/groups/`, data);
+    return response.data;
   },
-  updateGroup(id, payload) {
-    return request(`/groups/${id}`, {
-      method: "PUT",
-      body: JSON.stringify(payload),
-    });
+  updateGroup: async (id, data) => {
+    const response = await axios.put(`${API_URL}/groups/${id}`, data);
+    return response.data;
   },
-  deleteGroup(id) {
-    return request(`/groups/${id}`, { method: "DELETE" });
+  deleteGroup: async (id) => {
+    const response = await axios.delete(`${API_URL}/groups/${id}`);
+    return response.data;
+  },
+
+  // --- Modules ---
+  getModules: async () => {
+    const response = await axios.get(`${API_URL}/modules/`);
+    return response.data;
+  },
+  createModule: async (data) => {
+    const response = await axios.post(`${API_URL}/modules/`, data);
+    return response.data;
+  },
+  updateModule: async (id, data) => {
+    const response = await axios.put(`${API_URL}/modules/${id}`, data);
+    return response.data;
+  },
+  deleteModule: async (id) => {
+    const response = await axios.delete(`${API_URL}/modules/${id}`);
+    return response.data;
   },
 };
 

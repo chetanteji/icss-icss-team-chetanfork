@@ -302,4 +302,3 @@ ALTER TABLE ONLY public.rooms
 --
 
 \unrestrict ZpX1kCI6d6nXAaLgZ2AZvtP02GkLWPD0L47QjdW0axo4iCaYhRIePPbXuq5geCh
-
