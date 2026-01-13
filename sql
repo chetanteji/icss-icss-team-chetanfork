@@ -2,12 +2,12 @@
 -- PostgreSQL database dump
 --
 
-\restrict iTjfsCDuG3kkCtWuSLaZxFBe7EktaoTYjl6X7NdSYmLJRK2HxNOdqJarapNFLPn
+\restrict ZpX1kCI6d6nXAaLgZ2AZvtP02GkLWPD0L47QjdW0axo4iCaYhRIePPbXuq5geCh
 
 -- Dumped from database version 18.1
 -- Dumped by pg_dump version 18.1
 
--- Started on 2026-01-11 11:57:19
+-- Started on 2026-01-13 17:40:02
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -21,28 +21,27 @@ SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
 
---
--- TOC entry 4 (class 2615 OID 2200)
--- Name: public; Type: SCHEMA; Schema: -; Owner: pg_database_owner
---
-
-CREATE SCHEMA public;
-
-
-ALTER SCHEMA public OWNER TO pg_database_owner;
-
---
--- TOC entry 5049 (class 0 OID 0)
--- Dependencies: 4
--- Name: SCHEMA public; Type: COMMENT; Schema: -; Owner: pg_database_owner
---
-
-COMMENT ON SCHEMA public IS 'standard public schema';
-
-
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
+
+--
+-- TOC entry 225 (class 1259 OID 16508)
+-- Name: constraint_types; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.constraint_types (
+    id integer NOT NULL,
+    code character varying(80) NOT NULL,
+    description text,
+    default_hardness character varying(10) NOT NULL,
+    is_active boolean DEFAULT true NOT NULL,
+    created_at timestamp with time zone,
+    CONSTRAINT constraint_types_default_hardness_check CHECK (((default_hardness)::text = ANY ((ARRAY['HARD'::character varying, 'SOFT'::character varying])::text[])))
+);
+
+
+ALTER TABLE public.constraint_types OWNER TO postgres;
 
 --
 -- TOC entry 222 (class 1259 OID 16466)
@@ -156,7 +155,94 @@ CREATE TABLE public.rooms (
 ALTER TABLE public.rooms OWNER TO postgres;
 
 --
--- TOC entry 4886 (class 2606 OID 16478)
+-- TOC entry 5054 (class 0 OID 16508)
+-- Dependencies: 225
+-- Data for Name: constraint_types; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.constraint_types (id, code, description, default_hardness, is_active, created_at) FROM stdin;
+\.
+
+
+--
+-- TOC entry 5051 (class 0 OID 16466)
+-- Dependencies: 222
+-- Data for Name: groups; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.groups (group_id, group_name, semester, number_of_students) FROM stdin;
+\.
+
+
+--
+-- TOC entry 5048 (class 0 OID 16432)
+-- Dependencies: 219
+-- Data for Name: lecturers; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.lecturers (lecturer_id, numberoflecturers, workingavailablity, workinghours, campus_mode, modulesharing, teachingdays, moduletype, classduration, parttime_fulltime) FROM stdin;
+\.
+
+
+--
+-- TOC entry 5052 (class 0 OID 16479)
+-- Dependencies: 223
+-- Data for Name: module_requiremnts; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.module_requiremnts (module_id, module_name, room_type, session_per_week, semester, total_sessions, class_duration, number_of_students, onsite_online) FROM stdin;
+\.
+
+
+--
+-- TOC entry 5049 (class 0 OID 16449)
+-- Dependencies: 220
+-- Data for Name: modules; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.modules (module_id, module_code, module_name, credit_score, lecture_hours, emodule_type, assessment_type, semester) FROM stdin;
+\.
+
+
+--
+-- TOC entry 5053 (class 0 OID 16495)
+-- Dependencies: 224
+-- Data for Name: rooms; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.rooms (room_number, room_type, room_capacity, is_available) FROM stdin;
+\.
+
+
+--
+-- TOC entry 5060 (class 0 OID 0)
+-- Dependencies: 221
+-- Name: groups_group_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.groups_group_id_seq', 1, false);
+
+
+--
+-- TOC entry 4898 (class 2606 OID 16522)
+-- Name: constraint_types constraint_types_code_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.constraint_types
+    ADD CONSTRAINT constraint_types_code_key UNIQUE (code);
+
+
+--
+-- TOC entry 4900 (class 2606 OID 16520)
+-- Name: constraint_types constraint_types_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.constraint_types
+    ADD CONSTRAINT constraint_types_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 4892 (class 2606 OID 16478)
 -- Name: groups groups_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -165,7 +251,7 @@ ALTER TABLE ONLY public.groups
 
 
 --
--- TOC entry 4880 (class 2606 OID 16448)
+-- TOC entry 4886 (class 2606 OID 16448)
 -- Name: lecturers lecturers_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -174,7 +260,7 @@ ALTER TABLE ONLY public.lecturers
 
 
 --
--- TOC entry 4888 (class 2606 OID 16494)
+-- TOC entry 4894 (class 2606 OID 16494)
 -- Name: module_requiremnts module_requiremnts_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -183,7 +269,7 @@ ALTER TABLE ONLY public.module_requiremnts
 
 
 --
--- TOC entry 4882 (class 2606 OID 16464)
+-- TOC entry 4888 (class 2606 OID 16464)
 -- Name: modules modules_module_code_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -192,7 +278,7 @@ ALTER TABLE ONLY public.modules
 
 
 --
--- TOC entry 4884 (class 2606 OID 16462)
+-- TOC entry 4890 (class 2606 OID 16462)
 -- Name: modules modules_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -201,7 +287,7 @@ ALTER TABLE ONLY public.modules
 
 
 --
--- TOC entry 4890 (class 2606 OID 16505)
+-- TOC entry 4896 (class 2606 OID 16505)
 -- Name: rooms rooms_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -209,11 +295,10 @@ ALTER TABLE ONLY public.rooms
     ADD CONSTRAINT rooms_pkey PRIMARY KEY (room_number);
 
 
--- Completed on 2026-01-11 11:57:19
+-- Completed on 2026-01-13 17:40:03
 
 --
 -- PostgreSQL database dump complete
 --
 
-\unrestrict iTjfsCDuG3kkCtWuSLaZxFBe7EktaoTYjl6X7NdSYmLJRK2HxNOdqJarapNFLPn
-
+\unrestrict ZpX1kCI6d6nXAaLgZ2AZvtP02GkLWPD0L47QjdW0axo4iCaYhRIePPbXuq5geCh
