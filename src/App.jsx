@@ -7,7 +7,7 @@ import GroupOverview from "./Components/GroupOverview";
 import ModuleOverview from "./Components/ModuleOverview";
 import RoomOverview from "./Components/RoomOverview";
 import ConstraintOverview from "./Components/ConstraintOverview"; // <--- Import
-
+import AvailabilityOverview from "./Components/AvailabiltyOverview";
 export default function App() {
   const [page, setPage] = useState("programs");
 
@@ -21,7 +21,10 @@ export default function App() {
         {page === "lecturers" && <LecturerOverview />}
         {page === "modules" && <ModuleOverview />}
         {page === "rooms" && <RoomOverview />}
-        {page === "constraints" && <ConstraintOverview />} {/* <--- Add Route */}
+        {page === "constraints" && <ConstraintOverview />} 
+        {page === "availability" && <AvailabilityOverview />} 
+
+        {/* <--- Add Route */}
       </div>
     </div>
   );
@@ -29,7 +32,7 @@ export default function App() {
 
 function Topbar({ page, setPage }) {
   // Add "constraints" to the tabs list
-  const tabs = ["programs", "groups", "lecturers", "modules", "rooms", "constraints"];
+  const tabs = ["programs", "groups", "lecturers", "modules", "rooms", "constraints", "availability"];
 
   return (
     <div className="topbar">
