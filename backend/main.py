@@ -379,14 +379,7 @@ def delete_availability(availability_id: int):
             _avail_store.pop(i)
             return {"ok": True}
     raise HTTPException(status_code=404, detail="Availability not found")
-
-
-
-if __name__ == "__main__":
-    import uvicorn
-
-    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
-
+    
 MAX_MB = 10
 ALLOWED_TYPES = {
     "text/csv",
@@ -406,4 +399,12 @@ async def upload_file(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail="File too large")
 
     return {"ok": True, "filename": file.filename}
+
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+
 
