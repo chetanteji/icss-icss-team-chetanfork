@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session, joinedload
 import models
 import schemas
 from database import engine, get_db
+import os
 
 app = FastAPI(title="Study Program Backend")
 
@@ -15,9 +16,10 @@ app.add_middleware(
         "http://127.0.0.1:3000"
     ],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["Authorization", "Content-Type"],
 )
+
 
 # Create tables in Neon DB if they don't exist
 try:
