@@ -4,6 +4,25 @@ from typing import List, Optional, Dict, Any, Literal
 from pydantic import BaseModel
 
 # ... tus schemas arriba ...
+from pydantic import BaseModel, EmailStr
+
+class UserCreate(BaseModel):
+    email: EmailStr
+    password: str
+    role: str = "student"
+
+class UserOut(BaseModel):
+    id: int
+    email: EmailStr
+    role: str
+
+    class Config:
+        from_attributes = True
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
 
 class AvailabilityBase(BaseModel):
     lecturer_id: int
