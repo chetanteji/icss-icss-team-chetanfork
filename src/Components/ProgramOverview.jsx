@@ -26,10 +26,10 @@ const styles = {
   specItem: { display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px', background: '#f9f9f9', padding: '10px', borderRadius: '4px', border: '1px solid #eee' }
 };
 
-// ✅ Helper to display dates in German format (DD.MM.YYYY)
+
 function formatDateDE(isoDate) {
   if (!isoDate) return "-";
-  // Check if it looks like a date
+  // check if it looks like a date
   const date = new Date(isoDate);
   if (isNaN(date.getTime())) return isoDate; // Return original if not a valid date
   return date.toLocaleDateString("de-DE", {
@@ -236,6 +236,7 @@ export default function ProgramOverview() {
               <th style={styles.th}>Acronym</th>
               <th style={styles.th}>Head of Study Program</th>
               <th style={styles.th}>Location</th>
+              <th style={styles.th}>ECTS</th>
               <th style={styles.th}>Start Date</th>
               <th style={styles.th}>Status</th>
               <th style={{...styles.th, textAlign: 'right'}}>Actions</th>
@@ -255,7 +256,7 @@ export default function ProgramOverview() {
                 <td style={styles.td}>{p.acronym}</td>
                 <td style={styles.td}>{p.head}</td>
                 <td style={styles.td}>{p.location || "-"}</td>
-                {/* ✅ Display as German Date */}
+                <td style={styles.td}>{p.totalEcts}</td>
                 <td style={styles.td}>{formatDateDE(p.startDate)}</td>
                 <td style={styles.td}>
                   <span style={{...styles.statusBadge, ...(p.status ? styles.active : styles.inactive)}}>
@@ -304,7 +305,7 @@ export default function ProgramOverview() {
                 <div style={{display:'flex', gap:'15px'}}>
                     <div style={{...styles.formGroup, flex:1}}>
                         <label style={styles.label}>Start Date</label>
-                        {/* ✅ Program Calendar Picker */}
+                        {/* program Calendar Picker */}
                         <input
                             type="date"
                             style={styles.input}
@@ -355,7 +356,7 @@ export default function ProgramOverview() {
                             <input style={{...styles.input, flex:2}} placeholder="Name" value={spec.name} onChange={(e) => updateDraftSpec(idx, 'name', e.target.value)} />
                             <input style={{...styles.input, flex:1}} placeholder="Acronym" value={spec.acronym} onChange={(e) => updateDraftSpec(idx, 'acronym', e.target.value)} />
 
-                            {/* ✅ Specialization Calendar Picker */}
+                            {/* specialization Calendar Picker */}
                             <input
                                 type="date"
                                 style={{...styles.input, flex:1.2}}
