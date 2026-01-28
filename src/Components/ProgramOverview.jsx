@@ -50,7 +50,6 @@ function formatDateDE(isoDate) {
   return date.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
-// ✅ Accepts 'navigate' and 'initialLevel' props
 export default function ProgramOverview({ navigate, initialLevel }) {
   const [programs, setPrograms] = useState([]);
   const [allSpecs, setAllSpecs] = useState([]);
@@ -71,7 +70,6 @@ export default function ProgramOverview({ navigate, initialLevel }) {
     name: "", acronym: "", level: "Bachelor", head: "", status: true, startDate: "", totalEcts: 120, location: "", specializations: []
   });
 
-  // ✅ EFFECT: Automatically set view if passed from App
   useEffect(() => {
     if (initialLevel) {
         setViewMode(initialLevel);
@@ -229,7 +227,6 @@ export default function ProgramOverview({ navigate, initialLevel }) {
 
   const toggleExpand = (id, e) => { if (e.target.closest('button')) return; setExpandedId(expandedId === id ? null : id); };
 
-  // ✅ Navigate function using the prop
   const goToModules = (filterType, id) => {
       if (navigate) {
           navigate("modules", { [filterType]: id });
@@ -364,7 +361,6 @@ export default function ProgramOverview({ navigate, initialLevel }) {
         </div>
       )}
 
-      {/* --- MODAL: MANAGE MODULES (MANY-TO-MANY) --- */}
       {formMode === "manage_modules" && selectedSpecForModules && (
          <div style={styles.modalOverlay}>
             <div style={styles.modalContent}>

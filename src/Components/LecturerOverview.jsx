@@ -221,7 +221,7 @@ export default function LecturerOverview() {
   }
 
   async function save() {
-    // ✅ Updated Validation: MDH Email is now mandatory
+
     if (!draft.firstName.trim() || !draft.title.trim() || !draft.mdhEmail.trim()) {
       return alert("First Name, Title, and MDH Email are required.");
     }
@@ -424,7 +424,7 @@ export default function LecturerOverview() {
 
             <div style={{ display: 'flex', gap: '15px', marginBottom: '15px' }}>
                 <div style={{ flex: 1 }}>
-                    {/* ✅ MDH Email is Required */}
+                    {/*  MDH Email is Required */}
                     <label style={styles.label}>MDH Email</label>
                     <input
                       style={styles.input}

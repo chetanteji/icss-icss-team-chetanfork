@@ -184,9 +184,7 @@ export default function ModuleOverview({ navigate, initialFilter = {} }) {
           <thead style={styles.thead}>
             <tr>
               <th style={styles.th}></th><th style={styles.th}>Code</th><th style={styles.th}>Name</th><th style={styles.th}>ECTS</th>
-              {/* ✅ Renamed Sem -> Semester */}
               <th style={styles.th}>Semester</th>
-              {/* ✅ Added Category Column */}
               <th style={styles.th}>Category</th>
               <th style={styles.th}>Assessment</th><th style={styles.th}>Room Type</th><th style={{...styles.th, textAlign: 'right'}}>Actions</th>
             </tr>
@@ -198,7 +196,6 @@ export default function ModuleOverview({ navigate, initialFilter = {} }) {
                   <td style={styles.td}>{expandedCode === m.module_code ? "▼" : "▶"}</td>
                   <td style={styles.td}><strong>{m.module_code}</strong></td><td style={styles.td}>{m.name}</td><td style={styles.td}>{m.ects}</td>
                   <td style={styles.td}>{m.semester}</td>
-                  {/* ✅ Added Category Data */}
                   <td style={styles.td}>{m.category}</td>
                   <td style={styles.td}>{m.assessment_type}</td><td style={styles.td}>{m.room_type}</td>
                   <td style={{...styles.td, textAlign: 'right', whiteSpace: 'nowrap'}}>
@@ -271,7 +268,6 @@ export default function ModuleOverview({ navigate, initialFilter = {} }) {
                 <div style={{display:'flex', gap:'15px'}}>
                     <div style={{...styles.formGroup, flex:1}}><label style={styles.label}>ECTS</label><input type="number" style={styles.input} value={draft.ects} onChange={(e) => setDraft({ ...draft, ects: e.target.value })} /></div>
                     <div style={{...styles.formGroup, flex:1}}><label style={styles.label}>Semester</label><input type="number" style={styles.input} value={draft.semester} onChange={(e) => setDraft({ ...draft, semester: e.target.value })} /></div>
-                    {/* ✅ Added Category Selector to Form */}
                     <div style={{...styles.formGroup, flex:1}}><label style={styles.label}>Category</label><select style={styles.select} value={draft.category} onChange={(e) => setDraft({ ...draft, category: e.target.value })}>{CATEGORY_TYPES.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
                 </div>
                 <div style={{display:'flex', gap:'15px'}}>

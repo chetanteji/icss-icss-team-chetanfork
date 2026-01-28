@@ -82,7 +82,7 @@ const api = {
   // ---------- AVAILABILITIES (UPDATED) ----------
   getAvailabilities() { return request("/availabilities/"); },
 
-  // ✅ Updated to use the single update endpoint
+
   updateLecturerWeek(payload) {
     return request("/availabilities/update", {
       method: "POST",

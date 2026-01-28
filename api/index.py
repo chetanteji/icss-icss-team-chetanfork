@@ -18,9 +18,9 @@ app.add_middleware(
 
 try:
     models.Base.metadata.create_all(bind=engine)
-    print("✅ DB connected.")
+    print(" DB connected.")
 except Exception as e:
-    print("❌ DB error:", e)
+    print(" DB error:", e)
 
 
 @app.get("/")

@@ -12,7 +12,7 @@ module_specializations = Table(
     Column("specialization_id", Integer, ForeignKey("specializations.id"), primary_key=True),
 )
 
-# ✅ UPDATED: Stores entire week in one JSON column
+
 class LecturerAvailability(Base):
     __tablename__ = "lecturer_availabilities"
     id = Column(Integer, primary_key=True, index=True)

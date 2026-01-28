@@ -5,7 +5,7 @@ Hardness = Literal["Hard", "Soft"]
 Scope = Literal["Global", "Program", "Specialization", "Module", "Lecturer", "Group", "Room"]
 ProgramLevel = Literal["Bachelor", "Master"]
 
-# --- Availability Schemas (UPDATED for JSON) ---
+
 class AvailabilityResponse(BaseModel):
     id: int
     lecturer_id: int
@@ -16,7 +16,7 @@ class AvailabilityUpdate(BaseModel):
     lecturer_id: int
     schedule_data: Dict[str, Any]
 
-# --- Existing Schemas ---
+
 class UserCreate(BaseModel):
     email: EmailStr
     password: str

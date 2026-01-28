@@ -40,7 +40,7 @@ export default function App() {
 }
 
 function Topbar({ activePage, navigate }) {
-  // ✅ New Nested Menu Structure
+
   const menuGroups = [
     {
       label: "Curriculum",

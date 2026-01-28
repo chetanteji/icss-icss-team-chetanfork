@@ -58,7 +58,7 @@ export default function AvailabilityOverview() {
     }
   }
 
-  // ✅ Initialize Draft: Uses the JSON directly from DB
+
   function initDraft(lecturerId, existingData = {}) {
     const draft = {};
     DAYS.forEach(day => {
@@ -92,7 +92,7 @@ export default function AvailabilityOverview() {
   async function save() {
     if (!selectedLecturerId) return alert("Please select a lecturer");
 
-    // ✅ No complex conversion needed! Send JSON directly.
+
     const payload = {
       lecturer_id: parseInt(selectedLecturerId),
       schedule_data: weekDraft

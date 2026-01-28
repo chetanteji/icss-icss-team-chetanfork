@@ -256,7 +256,7 @@ export default function RoomOverview() {
                 <input style={styles.input} value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder="e.g. A-101"/>
             </div>
 
-            {/* ✅ NEW ROOM TYPE UI: Dropdown + Add + Delete */}
+
             <div style={styles.formGroup}>
                 <label style={styles.label}>Room Type</label>
                 <div style={{display:'flex', gap:'5px'}}>
