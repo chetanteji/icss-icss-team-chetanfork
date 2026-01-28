@@ -6,61 +6,90 @@ import GroupOverview from "./Components/GroupOverview";
 import LecturerOverview from "./Components/LecturerOverview";
 import ModuleOverview from "./Components/ModuleOverview";
 import RoomOverview from "./Components/RoomOverview";
-import ScheduleOverview from "./Components/ScheduleOverview";
 import ConstraintOverview from "./Components/ConstraintOverview";
 import AvailabilityOverview from "./Components/AvailabilityOverview";
 
 export default function App() {
-  const [page, setPage] = useState("programs");
+  const [view, setView] = useState({ page: "programs", data: {} });
+
+  const navigate = (pageName, data = {}) => {
+    setView({ page: pageName, data });
+  };
 
   return (
     <div className="app">
-      <Topbar page={page} setPage={setPage} />
+      <Topbar activePage={view.page} navigate={navigate} />
 
       <div className="page-container">
-        {page === "programs" && <ProgramOverview />}
-        {page === "groups" && <GroupOverview />}
-        {page === "lecturers" && <LecturerOverview />}
-        {page === "modules" && <ModuleOverview />}
-        {page === "rooms" && <RoomOverview />}
-        {page === "schedule" && <ScheduleOverview />}
-        {page === "constraints" && <ConstraintOverview />}
-        {page === "availability" && <AvailabilityOverview />}
+        {view.page === "programs" && (
+          <ProgramOverview navigate={navigate} initialLevel={view.data?.level} />
+        )}
+        {view.page === "modules" && (
+          <ModuleOverview navigate={navigate} initialFilter={view.data} />
+        )}
+        {view.page === "groups" && <GroupOverview />}
+
+        {view.page === "lecturers" && <LecturerOverview />}
+        {view.page === "rooms" && <RoomOverview />}
+
+        {view.page === "constraints" && <ConstraintOverview />}
+        {view.page === "availability" && <AvailabilityOverview />}
       </div>
     </div>
   );
 }
 
-function Topbar({ page, setPage }) {
-  const tabs = [
-    { key: "programs", label: "Study Programs" },
-    { key: "groups", label: "Groups Overview" },
-    { key: "lecturers", label: "Lecturers Overview" },
-    { key: "modules", label: "Modules Overview" },
-    { key: "rooms", label: "Rooms Overview" },
-    { key: "schedule", label: "Schedule Overview" },
-    { key: "constraints", label: "Constraints Overview" },
-    { key: "availability", label: "Availability Overview" },
+function Topbar({ activePage, navigate }) {
+  // ✅ New Nested Menu Structure
+  const menuGroups = [
+    {
+      label: "Curriculum",
+      items: [
+        { key: "programs", label: "Study Programs" },
+        { key: "modules", label: "Modules" },
+        { key: "groups", label: "Groups" },
+      ],
+    },
+    {
+      label: "Resources",
+      items: [
+        { key: "lecturers", label: "Lecturers" },
+        { key: "rooms", label: "Rooms" },
+      ],
+    },
+    {
+      label: "Scheduler Rules",
+      items: [
+        { key: "constraints", label: "Constraints" },
+        { key: "availability", label: "Availability" },
+      ],
+    },
   ];
 
   return (
     <div className="topbar">
-      <div className="logo">MDH</div>
-
+      <div className="logo">ICSS</div>
       <div className="nav">
-        {tabs.map((tab) => (
-          <button
-            key={tab.key}
-            className={page === tab.key ? "active" : ""}
-            onClick={() => setPage(tab.key)}
-          >
-            {tab.label}
-          </button>
+        {menuGroups.map((group) => (
+          <div key={group.label} className="dropdown">
+            <button className="dropbtn">
+              {group.label} <span style={{ fontSize: "0.7rem", marginLeft: "4px" }}>▼</span>
+            </button>
+            <div className="dropdown-content">
+              {group.items.map((item) => (
+                <button
+                  key={item.key}
+                  className={activePage === item.key ? "active" : ""}
+                  onClick={() => navigate(item.key)}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </div>
         ))}
       </div>
-
       <div className="user">User</div>
     </div>
   );
 }
-

@@ -1,8 +1,24 @@
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Text, DateTime
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Text, DateTime, Table, Date
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.sql import func
-from .database import Base  # <--- CHANGED: Added dot (.)
+from .database import Base
+
+# Association Table for Modules <-> Specializations
+module_specializations = Table(
+    "module_specializations",
+    Base.metadata,
+    Column("module_code", String, ForeignKey("modules.module_code"), primary_key=True),
+    Column("specialization_id", Integer, ForeignKey("specializations.id"), primary_key=True),
+)
+
+# ✅ UPDATED: Stores entire week in one JSON column
+class LecturerAvailability(Base):
+    __tablename__ = "lecturer_availabilities"
+    id = Column(Integer, primary_key=True, index=True)
+    lecturer_id = Column(Integer, ForeignKey("lecturers.ID"), unique=True, nullable=False)
+    schedule_data = Column(JSONB, nullable=False, server_default='{}')
+
 
 class ConstraintType(Base):
     __tablename__ = "constraint_types"
@@ -11,8 +27,11 @@ class ConstraintType(Base):
     active = Column(Boolean, nullable=False, server_default="true")
     constraint_level = Column(String, nullable=True)
     constraint_format = Column(String, nullable=True)
+    valid_from = Column(Date, nullable=True)
+    valid_to = Column(Date, nullable=True)
     constraint_rule = Column(Text, nullable=True)
     constraint_target = Column(String, nullable=True)
+
 
 class SchedulerConstraint(Base):
     __tablename__ = "scheduler_constraints"
@@ -28,6 +47,7 @@ class SchedulerConstraint(Base):
     created_at = Column(DateTime, nullable=False, server_default=func.now())
     updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
 
+
 class Group(Base):
     __tablename__ = "groups"
     id = Column(Integer, primary_key=True, index=True)
@@ -37,6 +57,7 @@ class Group(Base):
     email = Column("Email", String(200), nullable=True)
     program = Column("Program", String, nullable=True)
     parent_group = Column("Parent_Group", String, nullable=True)
+
 
 class Lecturer(Base):
     __tablename__ = "lecturers"
@@ -51,6 +72,7 @@ class Lecturer(Base):
     location = Column(String(200), nullable=True)
     teaching_load = Column(String(100), nullable=True)
 
+
 class Module(Base):
     __tablename__ = "modules"
     module_code = Column(String, primary_key=True, index=True)
@@ -61,7 +83,9 @@ class Module(Base):
     semester = Column(Integer, nullable=False)
     category = Column(String, nullable=True)
     program_id = Column(Integer, ForeignKey("study_programs.id"), nullable=True)
-    specialization_id = Column(Integer, ForeignKey("specializations.id"), nullable=True)
+
+    specializations = relationship("Specialization", secondary=module_specializations, back_populates="modules")
+
 
 class Room(Base):
     __tablename__ = "rooms"
@@ -73,6 +97,7 @@ class Room(Base):
     equipment = Column("Equipment", String, nullable=True)
     location = Column(String, nullable=True)
 
+
 class StudyProgram(Base):
     __tablename__ = "study_programs"
     id = Column(Integer, primary_key=True, index=True)
@@ -83,7 +108,9 @@ class StudyProgram(Base):
     start_date = Column(String, nullable=False)
     total_ects = Column(Integer, nullable=False)
     location = Column(String(200), nullable=True)
+    level = Column(String, nullable=False, server_default="Bachelor")
     specializations = relationship("Specialization", back_populates="program", cascade="all, delete-orphan")
+
 
 class Specialization(Base):
     __tablename__ = "specializations"
@@ -95,6 +122,9 @@ class Specialization(Base):
     status = Column(Boolean, default=True)
     study_program = Column(String, nullable=True)
     program = relationship("StudyProgram", back_populates="specializations")
+
+    modules = relationship("Module", secondary=module_specializations, back_populates="specializations")
+
 
 class User(Base):
     __tablename__ = "users"

@@ -45,7 +45,7 @@ const styles = {
     textAlign: "left",
     padding: "10px 15px",
     fontWeight: "600",
-    color: "#444", // Slightly darker for readability against white
+    color: "#444",
   },
   tr: {
     borderBottom: "1px solid #eee",
@@ -65,6 +65,7 @@ const styles = {
   primaryBtn: { background: "#007bff", color: "white" },
   editBtn: { background: "#6c757d", color: "white" },
   deleteBtn: { background: "#dc3545", color: "white" },
+
   modalOverlay: {
     position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
     background: "rgba(0,0,0,0.5)",
@@ -81,10 +82,16 @@ const styles = {
     width: "100%", padding: "8px", borderRadius: "4px",
     border: "1px solid #ccc", fontSize: "1rem", boxSizing: "border-box",
   },
+  select: {
+    width: "100%", padding: "8px", borderRadius: "4px",
+    border: "1px solid #ccc", fontSize: "1rem", boxSizing: "border-box", background: "white"
+  },
 };
 
 export default function GroupOverview() {
   const [groups, setGroups] = useState([]);
+  const [programs, setPrograms] = useState([]);
+
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [formMode, setFormMode] = useState("overview");
@@ -99,32 +106,35 @@ export default function GroupOverview() {
     program: "",
   });
 
-  async function loadGroups() {
+  async function loadData() {
     setLoading(true);
     try {
-      const data = await api.getGroups();
-      const mapped = (Array.isArray(data) ? data : []).map((x) => ({
+      const [groupData, programData] = await Promise.all([
+        api.getGroups(),
+        api.getPrograms()
+      ]);
+
+      const mappedGroups = (Array.isArray(groupData) ? groupData : []).map((x) => ({
         id: x.id,
-        // 👇 FIXED: Backend returns 'name', not 'group_name'
         groupName: x.name,
         size: x.size,
         description: x.description || "",
         email: x.email || "",
-        // 👇 FIXED: Backend returns snake_case 'parent_group'
         parentGroup: x.parent_group || "",
         program: x.program || "",
       }));
-      setGroups(mapped);
+      setGroups(mappedGroups);
+      setPrograms(Array.isArray(programData) ? programData : []);
+
     } catch (e) {
-      alert("Error loading groups: " + e.message);
-      setGroups([]);
+      alert("Error loading data: " + e.message);
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    loadGroups();
+    loadData();
   }, []);
 
   function openAdd() {
@@ -149,7 +159,6 @@ export default function GroupOverview() {
   async function save() {
     if (!draft.groupName.trim()) return alert("Group name is required");
 
-    // 👇 FIXED: Payload keys must match Pydantic schema (name, size, description, email, parent_group)
     const payload = {
       name: draft.groupName.trim(),
       size: Number(draft.size),
@@ -165,7 +174,7 @@ export default function GroupOverview() {
       } else {
         await api.updateGroup(editingId, payload);
       }
-      await loadGroups();
+      await loadData();
       setFormMode("overview");
     } catch (e) {
       console.error(e);
@@ -177,13 +186,12 @@ export default function GroupOverview() {
     if (!window.confirm("Delete this group?")) return;
     try {
       await api.deleteGroup(id);
-      loadGroups();
+      loadData();
     } catch (e) {
       alert("Backend error while deleting group.");
     }
   }
 
-  // Search Logic
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return groups;
@@ -273,16 +281,41 @@ export default function GroupOverview() {
                     <input style={styles.input} value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} placeholder="e.g., A group focused on software development"/>
                 </div>
 
-                {/* Parent Group */}
+                {/* ✅ Parent Group Selector (Simplified) */}
                 <div style={styles.formGroup}>
-                    <label style={styles.label}>Parent Group (can be empty)</label>
-                    <input style={styles.input} value={draft.parentGroup} onChange={(e) => setDraft({ ...draft, parentGroup: e.target.value })} placeholder="e.g., Faculty of Engineering" />
+                    <label style={styles.label}>Parent Group (Optional)</label>
+                    <select
+                        style={styles.select}
+                        value={draft.parentGroup}
+                        onChange={(e) => setDraft({ ...draft, parentGroup: e.target.value })}
+                    >
+                        <option value="">-- No Parent Group --</option>
+                        {groups
+                            .filter(g => g.id !== editingId) // Prevent selecting self as parent
+                            .map(g => (
+                                <option key={g.id} value={g.groupName}>
+                                    {g.groupName}
+                                </option>
+                            ))
+                        }
+                    </select>
                 </div>
 
-                {/* Program */}
+                {/* Program Selector */}
                 <div style={styles.formGroup}>
-                    <label style={styles.label}>Program (can be empty)</label>
-                    <input style={styles.input} value={draft.program} onChange={(e) => setDraft({ ...draft, program: e.target.value })} placeholder="e.g., Computer Science" />
+                    <label style={styles.label}>Program (Optional)</label>
+                    <select
+                        style={styles.select}
+                        value={draft.program}
+                        onChange={(e) => setDraft({ ...draft, program: e.target.value })}
+                    >
+                        <option value="">-- Select Program --</option>
+                        {programs.map(p => (
+                            <option key={p.id} value={p.name}>
+                                {p.name} ({p.level})
+                            </option>
+                        ))}
+                    </select>
                 </div>
 
                 <div style={{marginTop: '25px', display:'flex', justifyContent:'flex-end', gap:'10px'}}>

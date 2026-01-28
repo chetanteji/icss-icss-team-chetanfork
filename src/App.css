@@ -2,172 +2,136 @@ body {
   margin: 0;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background: #f5f7fa;
-  overflow-x: hidden; /* Prevent body scroll if possible */
+  overflow-x: hidden;
 }
 
 /* --- Topbar --- */
 .topbar {
   background: #fff;
   border-bottom: 1px solid #ddd;
-  padding: 10px 20px;
+  padding: 0 20px; /* Reduced padding top/bottom as buttons dictate height */
+  height: 60px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  flex-wrap: wrap; /* Allows menu items to wrap on small screens */
-  gap: 10px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  position: relative;
+  z-index: 100;
 }
 
 .logo {
   font-weight: bold;
-  font-size: 18px;
+  font-size: 20px;
   color: #0a53be;
-  margin-right: 20px;
+  margin-right: 30px;
+  letter-spacing: 1px;
 }
 
 .nav {
   display: flex;
-  gap: 5px;
-  flex-wrap: wrap; /* Important for preventing menu overflow */
+  height: 100%; /* Full height for hover areas */
+  align-items: center;
 }
 
-.nav button {
+/* --- Dropdown Menu Logic --- */
+.dropdown {
+  position: relative;
+  display: inline-block;
+  height: 100%;
+}
+
+/* The Main Category Button */
+.dropbtn {
   background: transparent;
   border: none;
-  padding: 8px 12px;
-  cursor: pointer;
+  padding: 0 20px;
+  height: 100%;
+  font-size: 15px;
+  font-weight: 600;
   color: #444;
-  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  display: flex;
+  align-items: center;
+}
+
+.dropdown:hover .dropbtn {
+  background-color: #f8f9fa;
+  color: #0a53be;
+}
+
+/* The Dropdown Content (Hidden by Default) */
+.dropdown-content {
+  display: none;
+  position: absolute;
+  background-color: #ffffff;
+  min-width: 180px;
+  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.15);
+  z-index: 1;
+  border: 1px solid #eee;
+  border-radius: 0 0 6px 6px;
+  top: 100%; /* Directly below the bar */
+  left: 0;
+}
+
+/* Show on Hover */
+.dropdown:hover .dropdown-content {
+  display: block;
+}
+
+/* Dropdown Links */
+.dropdown-content button {
+  color: #333;
+  padding: 12px 16px;
+  text-decoration: none;
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
   font-size: 14px;
-  border-radius: 4px;
-  transition: background 0.2s;
+  border-bottom: 1px solid #f9f9f9;
 }
 
-.nav button:hover {
-  background: #f0f0f0;
+.dropdown-content button:last-child {
+  border-bottom: none;
 }
 
-.nav button.active {
-  background: #e8edff;
+.dropdown-content button:hover {
+  background-color: #f1f3f5;
+  color: #0a53be;
+}
+
+/* Active State for Dropdown Items */
+.dropdown-content button.active {
+  background-color: #e8edff;
   color: #0a53be;
   font-weight: 600;
+  border-left: 3px solid #0a53be;
 }
 
 .user {
-  font-size: 18px;
+  font-size: 16px;
+  font-weight: 500;
+  color: #666;
 }
 
-/* --- Containers and Panels --- */
+/* --- Containers and Panels (Existing styles maintained) --- */
 .page-container {
-  /* 👇 CHANGED: Increased max-width and added margin */
   width: 95%;
   max-width: 1400px;
-  margin: 20px auto;
-
+  margin: 25px auto;
   background: #fff;
-  padding: 25px;
-  border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-
-  /* 👇 ADDED: Horizontal scroll if content is too wide */
-  overflow-x: auto;
+  padding: 30px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  min-height: 80vh;
 }
 
-.panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
-}
-
-.add-btn {
-  background: #0a53be;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 500;
-}
-
-.add-btn:hover {
-  background: #0849a2;
-}
-
-/* --- Table Styling --- */
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 15px;
-  min-width: 800px; /* 👇 Forces scrollbar on small screens instead of squishing */
-}
-
-th, td {
-  padding: 12px 15px;
-  text-align: left;
-  border-bottom: 1px solid #eee;
-  font-size: 0.95rem;
-}
-
-th {
-  background: #f8f9fa;
-  color: #333;
-  font-weight: 600;
-  border-bottom: 2px solid #ddd;
-  white-space: nowrap; /* Prevents header text from wrapping awkwardly */
-}
-
-tr:hover {
-  background: #f8f9ff;
-}
-
-/* --- Forms --- */
-.form {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-  margin-top: 20px;
-  max-width: 600px; /* Keeps forms readable */
-}
-
-label {
-  display: flex;
-  flex-direction: column;
-  font-size: 14px;
-  font-weight: 500;
-  color: #333;
-  gap: 5px;
-}
-
-input, select, textarea {
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  font-size: 14px;
-}
-
-input:focus, select:focus, textarea:focus {
-  outline: none;
-  border-color: #0a53be;
-  box-shadow: 0 0 0 3px rgba(10, 83, 190, 0.1);
-}
-
-.buttons {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 10px;
-}
-
-button.save {
-  background: #0a53be;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 500;
-}
-
-button.save:hover {
-  background: #0849a2;
-}
+/* --- Keep your existing Table/Form styles below --- */
+/* (Paste the rest of your original App.css here for table/form styles) */
+table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #eee; font-size: 0.9rem; }
+th { background: #f8f9fa; color: #444; font-weight: 600; }
+tr:hover { background: #f8f9ff; }

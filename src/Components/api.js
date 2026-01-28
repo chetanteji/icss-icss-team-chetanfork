@@ -13,7 +13,17 @@ async function request(path, options = {}) {
   });
 
   const text = await res.text().catch(() => "");
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText} - ${text}`);
+
+  // Try to parse JSON error message if available, otherwise use status text
+  if (!res.ok) {
+    try {
+      const errJson = JSON.parse(text);
+      throw new Error(errJson.detail || `${res.status} ${res.statusText}`);
+    } catch {
+      throw new Error(`${res.status} ${res.statusText} - ${text}`);
+    }
+  }
+
   if (!text) return null;
 
   try {
@@ -69,11 +79,22 @@ const api = {
   updateConstraint(id, payload) { return request(`/scheduler-constraints/${id}`, { method: "PUT", body: JSON.stringify(payload) }); },
   deleteConstraint(id) { return request(`/scheduler-constraints/${id}`, { method: "DELETE" }); },
 
-  // ---------- AVAILABILITIES ----------
+  // ---------- AVAILABILITIES (UPDATED) ----------
   getAvailabilities() { return request("/availabilities/"); },
-  createAvailability(payload) { return request("/availabilities/", { method: "POST", body: JSON.stringify(payload) }); },
-  updateAvailability(id, payload) { return request(`/availabilities/${id}`, { method: "PUT", body: JSON.stringify(payload) }); },
-  deleteAvailability(id) { return request(`/availabilities/${id}`, { method: "DELETE" }); },
+
+  // ✅ Updated to use the single update endpoint
+  updateLecturerWeek(payload) {
+    return request("/availabilities/update", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+  },
+
+  deleteLecturerAvailability(lecturerId) {
+    return request(`/availabilities/lecturer/${lecturerId}`, {
+      method: "DELETE"
+    });
+  },
 };
 
 export default api;

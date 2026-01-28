@@ -64,6 +64,10 @@ const styles = {
   primaryBtn: { background: "#007bff", color: "white" },
   editBtn: { background: "#6c757d", color: "white" },
   deleteBtn: { background: "#dc3545", color: "white" },
+
+  // Icon Button for Add/Delete
+  iconBtn: { padding: "8px", width:"35px", cursor: "pointer", border: "1px solid #ccc", borderRadius: "4px", background:"#f0f0f0", display:'flex', alignItems:'center', justifyContent:'center', fontSize:'1.1rem' },
+
   modalOverlay: {
     position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
     background: "rgba(0,0,0,0.5)",
@@ -80,7 +84,14 @@ const styles = {
     width: "100%", padding: "8px", borderRadius: "4px",
     border: "1px solid #ccc", fontSize: "1rem", boxSizing: "border-box",
   },
+  select: {
+    width: "100%", padding: "8px", borderRadius: "4px",
+    border: "1px solid #ccc", fontSize: "1rem", boxSizing: "border-box", background: "white"
+  },
 };
+
+const TITLES = ["Dr.", "Prof."];
+const STANDARD_LOCATIONS = ["Berlin", "Düsseldorf", "Munich"];
 
 export default function LecturerOverview() {
   const [lecturers, setLecturers] = useState([]);
@@ -89,11 +100,14 @@ export default function LecturerOverview() {
   const [formMode, setFormMode] = useState("overview");
   const [editingId, setEditingId] = useState(null);
 
+  // Store custom locations found in DB or added by user
+  const [customLocations, setCustomLocations] = useState([]);
+
   const [draft, setDraft] = useState({
     firstName: "",
     lastName: "",
-    title: "",
-    employmentType: "Full time", // Default matches valid option
+    title: "Dr.", // Default to first option
+    employmentType: "Full time",
     personalEmail: "",
     mdhEmail: "",
     phone: "",
@@ -119,6 +133,14 @@ export default function LecturerOverview() {
         fullName: `${x.first_name} ${x.last_name || ""}`.trim(),
       }));
       setLecturers(mapped);
+
+      // Extract existing custom locations from DB
+      const existingCustom = mapped
+        .map(l => l.location)
+        .filter(loc => loc && loc.trim() !== "" && !STANDARD_LOCATIONS.includes(loc));
+
+      setCustomLocations([...new Set(existingCustom)].sort());
+
     } catch (e) {
       alert("Error loading lecturers: " + e.message);
       setLecturers([]);
@@ -136,7 +158,7 @@ export default function LecturerOverview() {
     setDraft({
       firstName: "",
       lastName: "",
-      title: "",
+      title: "Dr.",
       employmentType: "Full time",
       personalEmail: "",
       mdhEmail: "",
@@ -152,7 +174,7 @@ export default function LecturerOverview() {
     setDraft({
       firstName: row.firstName || "",
       lastName: row.lastName || "",
-      title: row.title || "",
+      title: row.title || "Dr.",
       employmentType: row.employmentType || "Full time",
       personalEmail: row.personalEmail || "",
       mdhEmail: row.mdhEmail || "",
@@ -161,6 +183,31 @@ export default function LecturerOverview() {
       teachingLoad: row.teachingLoad || "",
     });
     setFormMode("edit");
+  }
+
+  // Add New Location Logic
+  function addNewLocation() {
+      const newLoc = prompt("Enter new location:");
+      if (newLoc && newLoc.trim() !== "") {
+          const formatted = newLoc.trim();
+          if (!STANDARD_LOCATIONS.includes(formatted) && !customLocations.includes(formatted)) {
+              setCustomLocations([...customLocations, formatted].sort());
+          }
+          setDraft({ ...draft, location: formatted });
+      }
+  }
+
+  // Delete Custom Location Logic
+  function deleteLocation() {
+      if (!draft.location) return;
+      if (STANDARD_LOCATIONS.includes(draft.location)) {
+          alert("Cannot delete standard locations.");
+          return;
+      }
+      if (window.confirm(`Remove "${draft.location}" from the list?`)) {
+          setCustomLocations(customLocations.filter(t => t !== draft.location));
+          setDraft({ ...draft, location: "" });
+      }
   }
 
   async function remove(id) {
@@ -174,8 +221,9 @@ export default function LecturerOverview() {
   }
 
   async function save() {
-    if (!draft.firstName.trim() || !draft.title.trim()) {
-      return alert("First Name and Title are required.");
+    // ✅ Updated Validation: MDH Email is now mandatory
+    if (!draft.firstName.trim() || !draft.title.trim() || !draft.mdhEmail.trim()) {
+      return alert("First Name, Title, and MDH Email are required.");
     }
 
     const payload = {
@@ -184,7 +232,7 @@ export default function LecturerOverview() {
       title: draft.title.trim(),
       employment_type: draft.employmentType,
       personal_email: draft.personalEmail.trim() || null,
-      mdh_email: draft.mdhEmail.trim() || null,
+      mdh_email: draft.mdhEmail.trim(), // Mandatory
       phone: draft.phone.trim() || null,
       location: draft.location.trim() || null,
       teaching_load: draft.teachingLoad.trim() || null
@@ -280,14 +328,16 @@ export default function LecturerOverview() {
               <button onClick={() => setFormMode("overview")} style={{ border: 'none', background: 'transparent', fontSize: '1.5rem', cursor: 'pointer' }}>×</button>
             </div>
 
+            {/* Title Selector */}
             <div style={styles.formGroup}>
               <label style={styles.label}>Title</label>
-              <input
-                style={styles.input}
+              <select
+                style={styles.select}
                 value={draft.title}
                 onChange={(e) => setDraft({ ...draft, title: e.target.value })}
-                placeholder="e.g., Prof. Dr."
-              />
+              >
+                {TITLES.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
             </div>
 
             <div style={{ display: 'flex', gap: '15px', marginBottom: '15px' }}>
@@ -312,20 +362,56 @@ export default function LecturerOverview() {
             </div>
 
             <div style={{ display: 'flex', gap: '15px', marginBottom: '15px' }}>
+              {/* Location Selector (Standard + Custom) */}
               <div style={{ flex: 1 }}>
                 <label style={styles.label}>Location</label>
-                <input
-                  style={styles.input}
-                  value={draft.location}
-                  onChange={(e) => setDraft({ ...draft, location: e.target.value })}
-                  placeholder="e.g., Berlin"
-                />
+                <div style={{display:'flex', gap:'5px'}}>
+                    <select
+                        style={{...styles.select, flex:1}}
+                        value={draft.location}
+                        onChange={(e) => setDraft({ ...draft, location: e.target.value })}
+                    >
+                        <option value="">-- Select Location --</option>
+                        <optgroup label="Standard">
+                            {STANDARD_LOCATIONS.map(l => <option key={l} value={l}>{l}</option>)}
+                        </optgroup>
+                        {customLocations.length > 0 && (
+                            <optgroup label="Custom">
+                                {customLocations.map(l => <option key={l} value={l}>{l}</option>)}
+                            </optgroup>
+                        )}
+                    </select>
+
+                    <button
+                        type="button"
+                        title="Add new location"
+                        onClick={addNewLocation}
+                        style={{...styles.iconBtn, background: '#e2e6ea'}}
+                    >
+                        +
+                    </button>
+
+                    <button
+                        type="button"
+                        title="Delete selected custom location"
+                        onClick={deleteLocation}
+                        disabled={!customLocations.includes(draft.location)}
+                        style={{
+                            ...styles.iconBtn,
+                            background: customLocations.includes(draft.location) ? '#f8d7da' : '#eee',
+                            color: customLocations.includes(draft.location) ? '#721c24' : '#aaa',
+                            cursor: customLocations.includes(draft.location) ? 'pointer' : 'default'
+                        }}
+                    >
+                        🗑
+                    </button>
+                </div>
               </div>
+
               <div style={{ flex: 1 }}>
                 <label style={styles.label}>Employment Type</label>
-                {/* 👇 FIXED: Values use spaces to match DB constraint */}
                 <select
-                  style={styles.input}
+                  style={styles.select}
                   value={draft.employmentType}
                   onChange={(e) => setDraft({ ...draft, employmentType: e.target.value })}
                 >
@@ -338,6 +424,7 @@ export default function LecturerOverview() {
 
             <div style={{ display: 'flex', gap: '15px', marginBottom: '15px' }}>
                 <div style={{ flex: 1 }}>
+                    {/* ✅ MDH Email is Required */}
                     <label style={styles.label}>MDH Email</label>
                     <input
                       style={styles.input}
@@ -347,7 +434,7 @@ export default function LecturerOverview() {
                     />
                 </div>
                 <div style={{ flex: 1 }}>
-                    <label style={styles.label}>Personal Email</label>
+                    <label style={styles.label}>Personal Email (Optional)</label>
                     <input
                       style={styles.input}
                       value={draft.personalEmail}
@@ -358,7 +445,7 @@ export default function LecturerOverview() {
             </div>
 
             <div style={styles.formGroup}>
-              <label style={styles.label}>Phone Number</label>
+              <label style={styles.label}>Phone Number (Optional)</label>
               <input
                 style={styles.input}
                 value={draft.phone}
