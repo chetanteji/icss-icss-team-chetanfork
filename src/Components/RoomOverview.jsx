@@ -1,120 +1,149 @@
 import { useEffect, useMemo, useState } from "react";
 import api from "../api";
 
-// --- CONSISTENT STYLES ---
+// --- STYLES ---
 const styles = {
   container: {
-    padding: "20px",
-    fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+    padding: "30px",
+    fontFamily: "'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
     color: "#333",
-    maxWidth: "100%",
+    maxWidth: "1200px",
+    margin: "0 auto",
+  },
+  campusGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+    gap: "25px",
+    marginTop: "40px",
+  },
+  campusCard: {
+    padding: "50px 20px",
+    textAlign: "center",
+    background: "#ffffff",
+    border: "1px solid #e0e0e0",
+    borderRadius: "12px",
+    cursor: "pointer",
+    transition: "all 0.2s ease",
+    boxShadow: "0 4px 6px rgba(0,0,0,0.05)",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
   },
   header: {
     display: "flex",
     justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: "20px",
-    borderBottom: "1px solid #ccc",
+    alignItems: "flex-end",
+    marginBottom: "25px",
+    borderBottom: "2px solid #f0f0f0",
     paddingBottom: "15px",
   },
   title: {
     margin: 0,
-    fontSize: "1.5rem",
-    color: "#333",
+    fontSize: "1.8rem",
+    fontWeight: "700",
+    color: "#2c3e50",
   },
   searchBar: {
-    padding: "8px 12px",
-    width: "300px",
-    borderRadius: "4px",
+    padding: "10px 15px",
+    width: "100%",
+    maxWidth: "400px",
+    borderRadius: "6px",
     border: "1px solid #ccc",
-    fontSize: "0.95rem",
-    marginBottom: "15px",
+    fontSize: "1rem",
+    marginBottom: "20px",
+    outline: "none",
   },
   table: {
     width: "100%",
     borderCollapse: "collapse",
     background: "#fff",
-    border: "1px solid #ddd",
-    fontSize: "0.9rem",
+    boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+    borderRadius: "8px",
+    overflow: "hidden",
   },
   thead: {
-    background: "#f2f2f2",
-    borderBottom: "2px solid #ccc",
+    background: "#f8f9fa",
   },
   th: {
     textAlign: "left",
-    padding: "10px 15px",
+    padding: "15px",
     fontWeight: "600",
-    color: "#ffffff",
+    borderBottom: "2px solid #dee2e6",
+    textTransform: "uppercase",
+    fontSize: "0.85rem",
+    letterSpacing: "0.05em",
   },
   tr: {
     borderBottom: "1px solid #eee",
   },
   td: {
-    padding: "10px 15px",
+    padding: "15px",
     verticalAlign: "middle",
   },
-  // Status Badge for "Available"
   statusBadge: (isAvailable) => ({
     display: "inline-block",
-    padding: "4px 8px",
-    borderRadius: "4px",
-    fontSize: "0.8rem",
+    padding: "5px 10px",
+    borderRadius: "20px",
+    fontSize: "0.75rem",
     fontWeight: "bold",
-    backgroundColor: isAvailable ? "#d4edda" : "#f8d7da",
-    color: isAvailable ? "#155724" : "#721c24",
-    border: isAvailable ? "1px solid #c3e6cb" : "1px solid #f5c6cb",
+    backgroundColor: isAvailable ? "#e6fffa" : "#fff5f5",
+    color: isAvailable ? "#2c7a7b" : "#c53030",
+    border: isAvailable ? "1px solid #b2f5ea" : "1px solid #feb2b2",
     textAlign: "center",
-    minWidth: "60px",
+    minWidth: "80px",
   }),
   btn: {
-    padding: "6px 12px",
-    borderRadius: "4px",
+    padding: "8px 16px",
+    borderRadius: "6px",
     border: "1px solid transparent",
     cursor: "pointer",
     fontSize: "0.9rem",
-    marginLeft: "5px",
+    fontWeight: "500",
+    transition: "opacity 0.2s",
   },
-  primaryBtn: { background: "#007bff", color: "white" },
-  editBtn: { background: "#6c757d", color: "white" },
-  deleteBtn: { background: "#dc3545", color: "white" },
+  primaryBtn: { background: "#3182ce", color: "white" },
+  backBtn: { background: "#edf2f7", color: "#4a5568", marginBottom: "10px" },
+  editBtn: { background: "#718096", color: "white", marginRight: "5px" },
+  deleteBtn: { background: "#e53e3e", color: "white" },
   modalOverlay: {
     position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
-    background: "rgba(0,0,0,0.5)",
+    background: "rgba(0,0,0,0.6)",
     display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000,
+    backdropFilter: "blur(2px)",
   },
   modalContent: {
-    background: "white", padding: "25px", borderRadius: "8px",
+    background: "white", padding: "30px", borderRadius: "12px",
     width: "500px", maxWidth: "95%", maxHeight: "90vh", overflowY: "auto",
-    boxShadow: "0 5px 15px rgba(0,0,0,0.3)",
   },
-  formGroup: { marginBottom: "15px" },
-  label: { display: "block", marginBottom: "5px", fontWeight: "bold", fontSize: "0.9rem" },
+  formGroup: { marginBottom: "20px" },
+  label: { display: "block", marginBottom: "8px", fontWeight: "600", fontSize: "0.9rem" },
   input: {
-    width: "100%", padding: "8px", borderRadius: "4px",
-    border: "1px solid #ccc", fontSize: "1rem", boxSizing: "border-box",
+    width: "100%", padding: "10px", borderRadius: "6px",
+    border: "1px solid #cbd5e0", fontSize: "1rem", boxSizing: "border-box",
   },
   checkboxWrapper: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    cursor: "pointer",
-    fontSize: "0.95rem",
+    display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", fontSize: "1rem",
   },
 };
 
 export default function RoomOverview() {
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [query, setQuery] = useState(""); // Added search state
+  const [query, setQuery] = useState("");
+  const [selectedCampus, setSelectedCampus] = useState(null); 
   const [formMode, setFormMode] = useState("overview");
   const [editingId, setEditingId] = useState(null);
+
+  // Define the  locations here
+  const campuses = ["Berlin", "Dusseldorf", "Munich"];
 
   const [draft, setDraft] = useState({
     name: "",
     capacity: "",
     type: "Lecture Classroom",
     available: true,
+    campus: ""
   });
 
   async function loadRooms() {
@@ -123,7 +152,7 @@ export default function RoomOverview() {
       const data = await api.getRooms();
       setRooms(Array.isArray(data) ? data : []);
     } catch (e) {
-      alert("Error loading rooms: " + e.message);
+      console.error("Load Error:", e);
     } finally {
       setLoading(false);
     }
@@ -140,6 +169,7 @@ export default function RoomOverview() {
       capacity: "",
       type: "Lecture Classroom",
       available: true,
+      campus: selectedCampus 
     });
     setFormMode("add");
   }
@@ -151,6 +181,7 @@ export default function RoomOverview() {
       capacity: r.capacity,
       type: r.type,
       available: r.available,
+      campus: r.campus
     });
     setFormMode("edit");
   }
@@ -161,10 +192,9 @@ export default function RoomOverview() {
     }
 
     const payload = {
+      ...draft,
       name: draft.name.trim(),
       capacity: Number(draft.capacity),
-      type: draft.type,
-      available: !!draft.available,
     };
 
     try {
@@ -176,48 +206,89 @@ export default function RoomOverview() {
       await loadRooms();
       setFormMode("overview");
     } catch (e) {
-      console.error(e);
-      alert("Backend error while saving room.");
+      alert("Error saving room data.");
     }
   }
 
   async function remove(id) {
-    if (!window.confirm("Delete this room?")) return;
+    if (!window.confirm("Are you sure you want to delete this room?")) return;
     try {
       await api.deleteRoom(id);
       loadRooms();
     } catch (e) {
-      console.error(e);
-      alert("Backend error while deleting room.");
+      alert("Error deleting room.");
     }
   }
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return rooms;
-    return rooms.filter((r) =>
-      r.name.toLowerCase().includes(q) ||
-      r.type.toLowerCase().includes(q)
-    );
-  }, [rooms, query]);
+    return rooms.filter((r) => {
+      const matchesCampus = r.campus === selectedCampus;
+      const matchesQuery = r.name.toLowerCase().includes(q) || r.type.toLowerCase().includes(q);
+      return matchesCampus && matchesQuery;
+    });
+  }, [rooms, query, selectedCampus]);
 
+  // --- VIEW 1: CAMPUS SELECTION ---
+  if (!selectedCampus) {
+    return (
+      <div style={styles.container}>
+        <div style={{textAlign: 'center', marginBottom: '40px'}}>
+          <h1 style={{fontSize: '2.5rem', color: '#1a202c', marginBottom: '10px'}}>Campus Management</h1>
+          <p style={{color: '#718096'}}>Please select a location to view available rooms</p>
+        </div>
+        <div style={styles.campusGrid}>
+          {campuses.map(campus => (
+            <div 
+              key={campus} 
+              style={styles.campusCard}
+              onClick={() => setSelectedCampus(campus)}
+              onMouseOver={(e) => {
+                e.currentTarget.style.borderColor = "#3182ce";
+                e.currentTarget.style.transform = "translateY(-5px)";
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.borderColor = "#e0e0e0";
+                e.currentTarget.style.transform = "translateY(0)";
+              }}
+            >
+              <span style={{fontSize: '3rem', marginBottom: '15px'}}>🏢</span>
+              <h3 style={{margin: 0, color: '#2d3748'}}>{campus}</h3>
+              <p style={{fontSize: '0.9rem', color: '#a0aec0', marginTop: '10px'}}>
+                {rooms.filter(r => r.campus === campus).length} Rooms Registered
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // --- VIEW 2: ROOM OVERVIEW ---
   return (
     <div style={styles.container}>
+      <button style={{...styles.btn, ...styles.backBtn}} onClick={() => setSelectedCampus(null)}>
+        ← Back to Campus Selection
+      </button>
+
       <div style={styles.header}>
-        <h2 style={styles.title}>Room Overview</h2>
+        <div>
+          <h2 style={styles.title}>{selectedCampus}</h2>
+          <p style={{color: '#718096', margin: '5px 0 0 0'}}>Manage room availability and details</p>
+        </div>
         <button style={{...styles.btn, ...styles.primaryBtn}} onClick={openAdd}>
-          + New Room
+          + Add New Room
         </button>
       </div>
 
       <input
         style={styles.searchBar}
-        placeholder="Search rooms..."
+        placeholder="Search rooms by name or type..."
         value={query}
         onChange={(e) => setQuery(e.target.value)}
       />
 
-      {loading ? <p>Loading...</p> : (
+      {loading ? <p>Loading room data...</p> : (
         <table style={styles.table}>
           <thead style={styles.thead}>
             <tr>
@@ -229,23 +300,25 @@ export default function RoomOverview() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((r) => (
+            {filtered.length === 0 ? (
+              <tr>
+                <td colSpan="5" style={{...styles.td, textAlign: 'center', padding: '50px', color: '#a0aec0'}}>
+                  No rooms found in this location.
+                </td>
+              </tr>
+            ) : filtered.map((r) => (
               <tr key={r.id} style={styles.tr}>
                 <td style={styles.td}><strong>{r.name}</strong></td>
                 <td style={styles.td}>{r.type}</td>
-                <td style={styles.td}>{r.capacity}</td>
+                <td style={styles.td}>{r.capacity} students</td>
                 <td style={{...styles.td, textAlign:'center'}}>
                   <span style={styles.statusBadge(r.available)}>
                     {r.available ? 'Available' : 'Occupied'}
                   </span>
                 </td>
                 <td style={{...styles.td, textAlign:'right'}}>
-                  <button style={{...styles.btn, ...styles.editBtn}} onClick={() => openEdit(r)}>
-                    Edit
-                  </button>
-                  <button style={{...styles.btn, ...styles.deleteBtn}} onClick={() => remove(r.id)}>
-                    Delete
-                  </button>
+                  <button style={{...styles.btn, ...styles.editBtn}} onClick={() => openEdit(r)}>Edit</button>
+                  <button style={{...styles.btn, ...styles.deleteBtn}} onClick={() => remove(r.id)}>Delete</button>
                 </td>
               </tr>
             ))}
@@ -257,9 +330,13 @@ export default function RoomOverview() {
       {(formMode === "add" || formMode === "edit") && (
         <div style={styles.modalOverlay}>
             <div style={styles.modalContent}>
-                <div style={{display:'flex', justifyContent:'space-between', marginBottom:'20px'}}>
-                    <h3 style={{margin:0}}>{formMode === "add" ? "Create Room" : "Edit Room"}</h3>
-                    <button onClick={() => setFormMode("overview")} style={{border:'none', background:'transparent', fontSize:'1.5rem', cursor:'pointer'}}>×</button>
+                <div style={{display:'flex', justifyContent:'space-between', marginBottom:'20px', alignItems: 'center'}}>
+                    <h3 style={{margin:0, fontSize: '1.4rem'}}>{formMode === "add" ? "Add New Room" : "Edit Room"}</h3>
+                    <button onClick={() => setFormMode("overview")} style={{border:'none', background:'transparent', fontSize:'1.8rem', cursor:'pointer', color: '#a0aec0'}}>×</button>
+                </div>
+
+                <div style={{background: '#f7fafc', padding: '10px', borderRadius: '6px', marginBottom: '20px', fontSize: '0.9rem'}}>
+                  Location: <strong>{selectedCampus}</strong>
                 </div>
 
                 <div style={styles.formGroup}>
@@ -268,13 +345,13 @@ export default function RoomOverview() {
                       style={styles.input}
                       value={draft.name}
                       onChange={e => setDraft({...draft, name: e.target.value})}
-                      placeholder="e.g. A-101"
+                      placeholder="e.g. Science Lab 102"
                     />
                 </div>
 
-                <div style={{display:'flex', gap:'15px', marginBottom:'15px'}}>
-                    <div style={{flex:1}}>
-                        <label style={styles.label}>Type</label>
+                <div style={{display:'flex', gap:'15px', marginBottom:'20px'}}>
+                    <div style={{flex:2}}>
+                        <label style={styles.label}>Room Type</label>
                         <select
                           style={styles.input}
                           value={draft.type}
@@ -293,7 +370,7 @@ export default function RoomOverview() {
                           style={styles.input}
                           value={draft.capacity}
                           onChange={e => setDraft({...draft, capacity: e.target.value})}
-                          placeholder="e.g. 30"
+                          placeholder="0"
                         />
                     </div>
                 </div>
@@ -303,16 +380,22 @@ export default function RoomOverview() {
                         <input
                             type="checkbox"
                             checked={draft.available}
+                            style={{width: '18px', height: '18px'}}
                             onChange={e => setDraft({...draft, available: e.target.checked})}
                         />
-                        Room is currently available
+                        Mark room as available for booking
                     </label>
                 </div>
 
-                <div style={{marginTop: '25px', display:'flex', justifyContent:'flex-end', gap:'10px'}}>
-                    <button style={{...styles.btn, background:'#f8f9fa', border:'1px solid #ddd'}} onClick={() => setFormMode("overview")}>Cancel</button>
+                <div style={{marginTop: '30px', display:'flex', justifyContent:'flex-end', gap:'12px'}}>
+                    <button 
+                      style={{...styles.btn, background: '#fff', border: '1px solid #cbd5e0'}} 
+                      onClick={() => setFormMode("overview")}
+                    >
+                      Cancel
+                    </button>
                     <button style={{...styles.btn, ...styles.primaryBtn}} onClick={save}>
-                        {formMode === "add" ? "Create" : "Save Changes"}
+                        {formMode === "add" ? "Create Room" : "Update Details"}
                     </button>
                 </div>
             </div>
