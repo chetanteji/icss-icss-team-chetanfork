@@ -45,7 +45,7 @@ export default function ConstraintOverview() {
     const mData = getValue(4) || [];
     const rData = getValue(5) || [];
 
-    // Log EXACTLY what failed (super importante)
+    // Log if anything specifically failed
     results.forEach((r, i) => {
       if (r.status === "rejected") {
         console.error("loadData failed at index:", i, r.reason);
@@ -57,21 +57,22 @@ export default function ConstraintOverview() {
 
     setTargets((prev) => ({
       ...prev,
+      // ✅ FIX: Correctly map first_name + last_name
       LECTURER: lData.map((x) => ({
         id: x.id,
-        name: x.full_name || x.name || x.lecturer_name || "Unnamed",
+        name: `${x.first_name} ${x.last_name || ""}`.trim(),
       })),
       GROUP: gData.map((x) => ({
         id: x.id,
-        name: x.group_name || x.name || "Unnamed",
+        name: x.name || "Unnamed",
       })),
       MODULE: mData.map((x) => ({
-        id: x.module_id ?? x.id,
-        name: x.module_name || x.name || "Unnamed",
+        id: x.module_code || x.module_id, // Safety check for ID field
+        name: x.name || x.module_name || "Unnamed",
       })),
       ROOM: rData.map((x) => ({
         id: x.id,
-        name: x.name || x.room_name || "Unnamed",
+        name: x.name || "Unnamed",
       })),
       GLOBAL: [{ id: 0, name: "Global (All)" }],
     }));
@@ -134,7 +135,9 @@ export default function ConstraintOverview() {
   const renderParameters = () => {
     if (!draft) return null;
 
-    const activeCode = types.find((t) => t.id === Number(draft.constraint_type_id))?.code;
+    // NOTE: If your DB constraint types use 'name' instead of 'code', change .code to .name below
+    const activeType = types.find((t) => t.id === Number(draft.constraint_type_id));
+    const activeCode = activeType?.code || activeType?.name;
 
     if (activeCode === "REQUIRED_ROOM_TYPE" || activeCode === "AVOID_ROOM_TYPE") {
       return (
@@ -222,9 +225,12 @@ export default function ConstraintOverview() {
 
         <tbody>
           {constraints.map((c) => {
-            const typeCode = types.find((t) => t.id === c.constraint_type_id)?.code || "N/A";
-            const targetName =
-              (targets[c.scope] || []).find((t) => t.id === c.target_id)?.name || "All";
+            const typeObj = types.find((t) => t.id === c.constraint_type_id);
+            const typeCode = typeObj?.code || typeObj?.name || "N/A";
+
+            const targetList = targets[c.scope] || [];
+            // Safe find in case target ID types mismatch (string vs int)
+            const targetName = targetList.find((t) => String(t.id) === String(c.target_id))?.name || "Unknown/All";
 
             return (
               <tr key={c.id}>
@@ -375,7 +381,7 @@ export default function ConstraintOverview() {
               >
                 {types.map((t) => (
                   <option key={t.id} value={t.id}>
-                    {t.code}
+                    {t.code || t.name}
                   </option>
                 ))}
               </select>
