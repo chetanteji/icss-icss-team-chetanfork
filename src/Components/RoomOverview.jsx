@@ -128,6 +128,7 @@ export default function RoomOverview() {
   const [formMode, setFormMode] = useState("overview");
   const [editingId, setEditingId] = useState(null);
 
+  // Custom Types State
   const [customTypes, setCustomTypes] = useState([]);
   const campuses = ["Berlin", "Dusseldorf", "Munich"];
 
@@ -163,6 +164,7 @@ export default function RoomOverview() {
 
       setRooms(mappedRooms);
 
+      // Extract custom types from DB
       const existingCustom = mappedRooms
         .map(r => r.type)
         .filter(t => t && !STANDARD_TYPES.includes(t));
@@ -177,6 +179,7 @@ export default function RoomOverview() {
 
   useEffect(() => {
     loadRooms();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function openAdd() {
@@ -207,6 +210,7 @@ export default function RoomOverview() {
     setFormMode("edit");
   }
 
+  // Add/Delete Type Logic
   function addNewType() {
       const newType = prompt("Enter new room type:");
       if (newType && newType.trim() !== "") {
@@ -233,6 +237,7 @@ export default function RoomOverview() {
       return alert("Name, Type, and Capacity are required.");
     }
 
+    // Combine Campus + Specific Location
     const finalLocation = draft.specific_location
         ? `${draft.campus} - ${draft.specific_location}`
         : draft.campus;
@@ -399,6 +404,7 @@ export default function RoomOverview() {
                     <input style={styles.input} value={draft.name} onChange={e => setDraft({...draft, name: e.target.value})} placeholder="e.g. Science Lab 102" />
                 </div>
 
+                {/* Custom Type Selector with Add/Delete */}
                 <div style={styles.formGroup}>
                     <label style={styles.label}>Room Type</label>
                     <div style={{display:'flex', gap:'8px'}}>
@@ -431,7 +437,7 @@ export default function RoomOverview() {
                     <input type="number" style={styles.input} value={draft.capacity} onChange={e => setDraft({...draft, capacity: e.target.value})} placeholder="0" />
                 </div>
 
-
+                {/* Specific Location & Equipment */}
                 <div style={{display:'flex', gap:'15px', marginBottom:'20px'}}>
                     <div style={{flex:1}}>
                         <label style={styles.label}>Specific Details (Floor/Wing)</label>
