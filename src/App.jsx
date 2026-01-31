@@ -1,95 +1,76 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import "./App.css";
+import Layout from "./Layout";
 
-import ProgramOverview from "./Components/ProgramOverview";
-import GroupOverview from "./Components/GroupOverview";
-import LecturerOverview from "./Components/LecturerOverview";
-import ModuleOverview from "./Components/ModuleOverview";
-import RoomOverview from "./Components/RoomOverview";
-import ConstraintOverview from "./Components/ConstraintOverview";
-import AvailabilityOverview from "./Components/AvailabilityOverview";
+// Import components
+import ProgramOverview from "./components/ProgramOverview";
+import ModuleOverview from "./components/ModuleOverview";
+import LecturerOverview from "./components/LecturerOverview";
+import RoomOverview from "./components/RoomOverview";
+import GroupOverview from "./components/GroupOverview";
+import ConstraintOverview from "./components/ConstraintOverview";
+import AvailabilityOverview from "./components/AvailabilityOverview";
 
-export default function App() {
-  const [view, setView] = useState({ page: "programs", data: {} });
+function App() {
+  const [activeTab, setActiveTab] = useState("programs");
 
-  const navigate = (pageName, data = {}) => {
-    setView({ page: pageName, data });
+  // ✅ FIX: Removed 'setToken' causing build error (unused)
+  // We only read the token here; writing happens in Layout.jsx + Reload
+  const [token] = useState(localStorage.getItem("token"));
+  const [currentUserRole, setCurrentUserRole] = useState(localStorage.getItem("userRole") || "Guest");
+
+  const [navData, setNavData] = useState(null);
+
+  const handleNavigate = (tab, data = null) => {
+    setActiveTab(tab);
+    setNavData(data);
+  };
+
+  // If no token is present, we show a "Welcome" screen instead of the data components.
+  // This prevents the 401 -> Reload loop.
+  const renderContent = () => {
+    if (!token) {
+      return (
+        <div style={{textAlign: "center", marginTop: "100px", color: "#64748b"}}>
+          <h2>Welcome to ICSS Scheduler</h2>
+          <p>Please select a Role in the bottom-left corner to start testing.</p>
+        </div>
+      );
+    }
+
+    // Pass role to all components
+    const commonProps = { currentUserRole, onNavigate: handleNavigate };
+
+    switch (activeTab) {
+      case "programs":
+        return <ProgramOverview initialData={navData} clearInitialData={() => setNavData(null)} {...commonProps} />;
+      case "modules":
+        return <ModuleOverview onNavigate={handleNavigate} {...commonProps} />;
+      case "lecturers":
+        return <LecturerOverview {...commonProps} />;
+      case "rooms":
+        return <RoomOverview {...commonProps} />;
+      case "groups":
+        return <GroupOverview {...commonProps} />;
+      case "constraints":
+        return <ConstraintOverview {...commonProps} />;
+      case "availabilities":
+        return <AvailabilityOverview {...commonProps} />;
+      default:
+        return <ProgramOverview {...commonProps} />;
+    }
   };
 
   return (
-    <div className="app">
-      <Topbar activePage={view.page} navigate={navigate} />
-
-      <div className="page-container">
-        {view.page === "programs" && (
-          <ProgramOverview navigate={navigate} initialLevel={view.data?.level} />
-        )}
-        {view.page === "modules" && (
-          <ModuleOverview navigate={navigate} initialFilter={view.data} />
-        )}
-        {view.page === "groups" && <GroupOverview />}
-
-        {view.page === "lecturers" && <LecturerOverview />}
-        {view.page === "rooms" && <RoomOverview />}
-
-        {view.page === "constraints" && <ConstraintOverview />}
-        {view.page === "availability" && <AvailabilityOverview />}
-      </div>
-    </div>
+    <Layout
+      activeTab={activeTab}
+      setActiveTab={setActiveTab}
+      currentUserRole={currentUserRole}
+      setCurrentUserRole={setCurrentUserRole}
+    >
+      {renderContent()}
+    </Layout>
   );
 }
 
-function Topbar({ activePage, navigate }) {
-
-  const menuGroups = [
-    {
-      label: "Curriculum",
-      items: [
-        { key: "programs", label: "Study Programs" },
-        { key: "modules", label: "Modules" },
-        { key: "groups", label: "Groups" },
-      ],
-    },
-    {
-      label: "Resources",
-      items: [
-        { key: "lecturers", label: "Lecturers" },
-        { key: "rooms", label: "Rooms" },
-      ],
-    },
-    {
-      label: "Scheduler Rules",
-      items: [
-        { key: "constraints", label: "Constraints" },
-        { key: "availability", label: "Availability" },
-      ],
-    },
-  ];
-
-  return (
-    <div className="topbar">
-      <div className="logo">ICSS</div>
-      <div className="nav">
-        {menuGroups.map((group) => (
-          <div key={group.label} className="dropdown">
-            <button className="dropbtn">
-              {group.label} <span style={{ fontSize: "0.7rem", marginLeft: "4px" }}>▼</span>
-            </button>
-            <div className="dropdown-content">
-              {group.items.map((item) => (
-                <button
-                  key={item.key}
-                  className={activePage === item.key ? "active" : ""}
-                  onClick={() => navigate(item.key)}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-      <div className="user">User</div>
-    </div>
-  );
-}
+export default App;

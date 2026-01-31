@@ -1,21 +1,36 @@
 const API_URL = process.env.NODE_ENV === 'production'
-  ? "/api" // Points to Vercel/Python backend
+  ? "/api"
   : "http://127.0.0.1:8000";
 
 const API_BASE_URL = API_URL.replace(/\/$/, "");
 
 async function request(path, options = {}) {
-  // Fix: Ensure we don't end up with double slashes if path has one
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
-  const res = await fetch(`${API_BASE_URL}${cleanPath}`, {
-    headers: { "Content-Type": "application/json", ...(options.headers || {}) },
-    ...options,
-  });
+  const url = `${API_BASE_URL}${cleanPath}`;
+
+  // Auto-Attach Token
+  const token = localStorage.getItem("token");
+  const headers = {
+    "Content-Type": "application/json",
+    ...(options.headers || {})
+  };
+
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  const res = await fetch(url, { ...options, headers });
 
   const text = await res.text().catch(() => "");
 
-  // Try to parse JSON error message if available, otherwise use status text
   if (!res.ok) {
+    // If token expired (401), auto-logout
+    if (res.status === 401) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("userRole");
+        window.location.href = "/"; // Force reload to login
+    }
+
     try {
       const errJson = JSON.parse(text);
       throw new Error(errJson.detail || `${res.status} ${res.statusText}`);
@@ -25,15 +40,18 @@ async function request(path, options = {}) {
   }
 
   if (!text) return null;
-
-  try {
-    return JSON.parse(text);
-  } catch {
-    return text;
-  }
+  try { return JSON.parse(text); } catch { return text; }
 }
 
 const api = {
+  // --- AUTH ---
+  login(email, password) {
+    return request("/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password })
+    });
+  },
+
   // ---------- PROGRAMS ----------
   getPrograms() { return request("/study-programs/"); },
   createProgram(payload) { return request("/study-programs/", { method: "POST", body: JSON.stringify(payload) }); },
@@ -79,22 +97,10 @@ const api = {
   updateConstraint(id, payload) { return request(`/scheduler-constraints/${id}`, { method: "PUT", body: JSON.stringify(payload) }); },
   deleteConstraint(id) { return request(`/scheduler-constraints/${id}`, { method: "DELETE" }); },
 
-  // ---------- AVAILABILITIES (UPDATED) ----------
+  // ---------- AVAILABILITIES ----------
   getAvailabilities() { return request("/availabilities/"); },
-
-
-  updateLecturerWeek(payload) {
-    return request("/availabilities/update", {
-      method: "POST",
-      body: JSON.stringify(payload)
-    });
-  },
-
-  deleteLecturerAvailability(lecturerId) {
-    return request(`/availabilities/lecturer/${lecturerId}`, {
-      method: "DELETE"
-    });
-  },
+  updateLecturerWeek(payload) { return request("/availabilities/update", { method: "POST", body: JSON.stringify(payload) }); },
+  deleteLecturerAvailability(lecturerId) { return request(`/availabilities/lecturer/${lecturerId}`, { method: "DELETE" }); },
 };
 
 export default api;

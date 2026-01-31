@@ -1,66 +1,32 @@
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Text, DateTime, Table, Date
-from sqlalchemy.orm import relationship
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import Column, Integer, String, Boolean, Date, ForeignKey, Text, JSON, TIMESTAMP, Table
+from sqlalchemy.orm import relationship, declarative_base
 from sqlalchemy.sql import func
-from .database import Base
 
-# Association Table for Modules <-> Specializations
+Base = declarative_base()
+
+# Association Table for Many-to-Many relationship between Modules and Specializations
 module_specializations = Table(
     "module_specializations",
     Base.metadata,
-    Column("module_code", String, ForeignKey("modules.module_code"), primary_key=True),
-    Column("specialization_id", Integer, ForeignKey("specializations.id"), primary_key=True),
+    Column("module_code", String, ForeignKey("modules.module_code", ondelete="CASCADE"), primary_key=True),
+    Column("specialization_id", Integer, ForeignKey("specializations.id", ondelete="CASCADE"), primary_key=True),
 )
 
 
-class LecturerAvailability(Base):
-    __tablename__ = "lecturer_availabilities"
+class User(Base):
+    __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)
-    lecturer_id = Column(Integer, ForeignKey("lecturers.ID"), unique=True, nullable=False)
-    schedule_data = Column(JSONB, nullable=False, server_default='{}')
+    email = Column(String(200), unique=True, index=True, nullable=False)
+    password_hash = Column(String(255), nullable=False)
+    role = Column(String(20), nullable=False)  # admin, pm, hosp, lecturer, student
+    lecturer_id = Column(Integer, ForeignKey("lecturers.ID"), nullable=True)
 
-
-class ConstraintType(Base):
-    __tablename__ = "constraint_types"
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(80), unique=True, nullable=False)
-    active = Column(Boolean, nullable=False, server_default="true")
-    constraint_level = Column(String, nullable=True)
-    constraint_format = Column(String, nullable=True)
-    valid_from = Column(Date, nullable=True)
-    valid_to = Column(Date, nullable=True)
-    constraint_rule = Column(Text, nullable=True)
-    constraint_target = Column(String, nullable=True)
-
-
-class SchedulerConstraint(Base):
-    __tablename__ = "scheduler_constraints"
-    id = Column(Integer, primary_key=True, index=True)
-    constraint_type_id = Column(Integer, ForeignKey("constraint_types.id"), nullable=False)
-    hardness = Column(String(10), nullable=False)
-    weight = Column(Integer, nullable=True)
-    scope = Column(String(20), nullable=False)
-    target_id = Column(Integer, nullable=True)
-    config = Column(JSONB, nullable=False, server_default="{}")
-    is_enabled = Column(Boolean, nullable=False, server_default="true")
-    notes = Column(Text, nullable=True)
-    created_at = Column(DateTime, nullable=False, server_default=func.now())
-    updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
-
-
-class Group(Base):
-    __tablename__ = "groups"
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column("Name", String(100), nullable=False)
-    size = Column("Size", Integer, nullable=False)
-    description = Column("Brief description", String(250), nullable=True)
-    email = Column("Email", String(200), nullable=True)
-    program = Column("Program", String, nullable=True)
-    parent_group = Column("Parent_Group", String, nullable=True)
+    lecturer_profile = relationship("Lecturer")
 
 
 class Lecturer(Base):
     __tablename__ = "lecturers"
+    # ✅ SQL Schema uses capitalized "ID"
     id = Column("ID", Integer, primary_key=True, index=True)
     first_name = Column(String(200), nullable=False)
     last_name = Column(String(200), nullable=True)
@@ -71,6 +37,22 @@ class Lecturer(Base):
     phone = Column(String(50), nullable=True)
     location = Column(String(200), nullable=True)
     teaching_load = Column(String(100), nullable=True)
+
+
+class StudyProgram(Base):
+    __tablename__ = "study_programs"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, index=True, nullable=False)
+    acronym = Column(String, nullable=False)
+    status = Column(Boolean, default=True)
+    start_date = Column(String, nullable=False)
+    total_ects = Column(Integer, nullable=False)
+    location = Column(String(200), nullable=True)
+    level = Column(String(50), default="Bachelor")
+    degree_type = Column(String, nullable=True)
+    head_of_program_id = Column(Integer, ForeignKey("lecturers.ID"), nullable=True)
+
+    head_lecturer = relationship("Lecturer")
 
 
 class Module(Base):
@@ -87,31 +69,6 @@ class Module(Base):
     specializations = relationship("Specialization", secondary=module_specializations, back_populates="modules")
 
 
-class Room(Base):
-    __tablename__ = "rooms"
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, unique=True, index=True, nullable=False)
-    capacity = Column(Integer, nullable=False)
-    type = Column(String, nullable=False)
-    status = Column(Boolean, nullable=True)
-    equipment = Column("Equipment", String, nullable=True)
-    location = Column(String, nullable=True)
-
-
-class StudyProgram(Base):
-    __tablename__ = "study_programs"
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False, index=True)
-    acronym = Column(String, nullable=False)
-    head_of_program = Column(String, nullable=False)
-    status = Column(Boolean, default=True)
-    start_date = Column(String, nullable=False)
-    total_ects = Column(Integer, nullable=False)
-    location = Column(String(200), nullable=True)
-    level = Column(String, nullable=False, server_default="Bachelor")
-    specializations = relationship("Specialization", back_populates="program", cascade="all, delete-orphan")
-
-
 class Specialization(Base):
     __tablename__ = "specializations"
     id = Column(Integer, primary_key=True, index=True)
@@ -121,14 +78,64 @@ class Specialization(Base):
     start_date = Column(String, nullable=False)
     status = Column(Boolean, default=True)
     study_program = Column(String, nullable=True)
-    program = relationship("StudyProgram", back_populates="specializations")
 
     modules = relationship("Module", secondary=module_specializations, back_populates="specializations")
 
 
-class User(Base):
-    __tablename__ = "users"
+class Group(Base):
+    __tablename__ = "groups"
     id = Column(Integer, primary_key=True, index=True)
-    email = Column(String(200), unique=True, index=True, nullable=False)
-    password_hash = Column(String(255), nullable=False)
-    role = Column(String(20), nullable=False, default="student")
+    # ✅ SQL Schema uses capitalized "Name" and "Size"
+    name = Column("Name", String(100), nullable=False)
+    size = Column("Size", Integer, nullable=False)
+    description = Column("Brief description", String(250), nullable=True)
+    email = Column("Email", String(200), nullable=True)
+    program = Column("Program", String, nullable=True)
+    parent_group = Column("Parent_Group", String, nullable=True)
+
+
+class Room(Base):
+    __tablename__ = "rooms"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, nullable=False)
+    capacity = Column(Integer, nullable=False)
+    type = Column(String, nullable=False)
+    status = Column(Boolean, default=True, nullable=False)
+    # ✅ SQL Schema uses capitalized "Equipment"
+    equipment = Column("Equipment", String, nullable=True)
+    location = Column(String(200), nullable=True)
+
+
+class LecturerAvailability(Base):
+    __tablename__ = "lecturer_availabilities"
+    id = Column(Integer, primary_key=True, index=True)
+    lecturer_id = Column(Integer, ForeignKey("lecturers.ID", ondelete="CASCADE"), unique=True, nullable=False)
+    schedule_data = Column(JSON, default={}, nullable=False)
+
+
+class ConstraintType(Base):
+    __tablename__ = "constraint_types"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(80), unique=True, nullable=False)
+    active = Column(Boolean, default=True, nullable=False)
+    constraint_level = Column(String, nullable=True)
+    constraint_format = Column(String, nullable=True)
+    valid_from = Column(Date, nullable=True)
+    valid_to = Column(Date, nullable=True)
+    constraint_rule = Column(Text, nullable=True)
+    constraint_target = Column(String, nullable=True)
+
+
+class SchedulerConstraint(Base):
+    __tablename__ = "scheduler_constraints"
+    id = Column(Integer, primary_key=True, index=True)
+    constraint_type_id = Column(Integer, ForeignKey("constraint_types.id"), nullable=False)
+    hardness = Column(String(10), nullable=False)
+    weight = Column(Integer, nullable=True)
+    scope = Column(String(20), nullable=False)
+    target_id = Column(Integer, nullable=True)
+    config = Column(JSON, default={}, nullable=False)
+    is_enabled = Column(Boolean, default=True, nullable=False)
+    notes = Column(Text, nullable=True)
+    created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now(), nullable=False)

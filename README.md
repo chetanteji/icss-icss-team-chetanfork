@@ -1,70 +1,134 @@
-# Getting Started with Create React App
+# AUTH_AND_RBAC.md
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+## Team workflow (read first)
+Before starting any work, **always pull the latest version of the repository** to ensure you are working on the current codebase and to avoid merge conflicts.
 
-## Available Scripts
+All new or changed code must be:
+1. **Implemented and verified on your personal deployment/environment first** (basic functional + permission checks).
+2. **Communicated clearly to the team** (e.g., in the team group chat/channel), including:
+   - what was changed,
+   - which files/routers/components were affected,
+   - any new endpoints or breaking changes,
+   - and what sanity checks you ran.
 
-In the project directory, you can run:
+This ensures changes remain traceable, testable, and safe to build on.
 
-### `npm start`
+---
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## Overview
+This project uses **JWT-based authentication** and **role-based access control (RBAC)**.
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+### Key goals
+- Enforce role permissions **server-side** (UI restrictions are not security).
+- Support **scoped access** (“specific”, “own”) where data ownership applies.
+- Keep auth rules consistent so the system remains safe while routers/components are refined.
 
-### `npm test`
+---
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Roles
 
-### `npm run build`
+### 1) Student
+**Philosophy:** Pure consumer (read-only).
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+**Intended permissions**
+- `schedule:view:specific`  
+  View schedule events where `student_group_id` matches the student’s enrollment.
+- `module:view:specific`  
+  View modules the student is enrolled in.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+**Current note:** “specific” filtering for student requires enrollment tables (student ↔ group/module), which may be added later.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+---
 
-### `npm run eject`
+### 2) Lecturer
+**Philosophy:** Contributor & self-manager.
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+**Permissions**
+- `schedule:view:specific`  
+  View schedule events where `lecturer_id == current_user.lecturer_id`.
+- `module:view:specific`  
+  View modules where the lecturer is assigned.
+- `availability:all:own`  
+  Full CRUD on lecturer availability where `lecturer_id == current_user.lecturer_id`.
+- `lecturer:update:own (restricted)`  
+  Lecturer can update **only** `personal_email` and `phone` on their own lecturer profile.  
+  All other lecturer fields are PM/Admin-only.
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+**Current note:** module/schedule “specific” requires assignment/schedule tables to be fully enforceable.
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+---
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+### 3) Head of Study Program (HoSP)
+**Philosophy:** Manager of a specific program domain.
 
-## Learn More
+**Permissions**
+- `lecturer:view:global`  
+  View all lecturers (to assign them to modules).
+- `program:all:specific`  
+  Update study programs only where:  
+  `study_programs.head_of_program_id == current_user.lecturer_id`
+- `module:all:specific`  
+  Create/edit/delete modules only where `modules.program_id` is owned by HoSP.
+- `specialization:all:specific`  
+  Manage specializations only where `specializations.program_id` is owned by HoSP.
+- `group:all:specific`  
+  Manage student groups only within their program domain.
+- `constraint:all:specific`  
+  Manage constraints within program domain.  
+  Recommended enforcement: `scope="Program"` and `target_id=<program_id>`.
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+---
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+### 4) PM / Admin
+**Philosophy:** Full access / system owners.
 
-### Code Splitting
+**Permissions**
+- Full CRUD across all resources.
+- Assign HoSP by setting `study_programs.head_of_program_id`.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+---
 
-### Analyzing the Bundle Size
+## Authentication
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+### Login
+Client calls:
+- `POST /api/auth/login` with `{ email, password }`
 
-### Making a Progressive Web App
+Response returns:
+- `access_token`
+- `role`
+- `lecturer_id` (nullable)
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+### JWT claims (token payload)
+The JWT contains:
+- `sub` (email)
+- `role` (`"pm" | "admin" | "hosp" | "lecturer" | "student"`)
+- `lecturer_id` (0 if none)
+- `exp` (expiry timestamp)
 
-### Advanced Configuration
+**Important:** `SECRET_KEY` must be set in deployment environment variables so tokens stay verifiable across serverless instances.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+---
 
-### Deployment
+## Authorization rules (RBAC)
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+### Server-side enforcement
+The backend must reject unauthorized actions with **403**, even if the UI hides buttons.
 
-### `npm run build` fails to minify
+### “own”
+Means: the resource belongs to the current lecturer identity. Examples:
+- Lecturer availability “own”:  
+  `lecturer_availabilities.lecturer_id == current_user.lecturer_id`
+- Lecturer profile “own”:  
+  `lecturers.id == current_user.lecturer_id`
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+### “specific”
+Means: the resource is within the user’s domain. Examples:
+- HoSP owns a program:  
+  `study_programs.head_of_program_id == current_user.lecturer_id`
+- HoSP owns a module:  
+  `modules.program_id in hosp_program_ids(current_user)`
+
+
+
+
