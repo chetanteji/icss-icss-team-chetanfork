@@ -26,6 +26,7 @@ const styles = {
   listHeader: {
     display: "grid",
     gridTemplateColumns: "80px 2fr 1.5fr 80px 100px 60px 1.2fr 1.2fr 110px",
+    gap: "15px", // ✅ ADDED: Matches listCard gap for perfect alignment
     padding: "0 25px",
     marginBottom: "5px",
     color: "#94a3b8",
@@ -43,10 +44,10 @@ const styles = {
     cursor: "pointer",
     transition: "background-color 0.2s ease",
     display: "grid",
-    gridTemplateColumns: "80px 2fr 1.5fr 80px 100px 60px 1.2fr 1.2fr 110px",
+    gridTemplateColumns: "80px 2fr 1.5fr 80px 100px 60px 1.2fr 1.2fr 110px", // Exact match
     alignItems: "center",
     padding: "16px 25px",
-    gap: "15px",
+    gap: "15px", // Gap matches Header
     boxShadow: "0 2px 8px rgba(0,0,0,0.08)"
   },
 
@@ -56,7 +57,11 @@ const styles = {
   codeText: { fontWeight: "700", color: "#3b82f6", fontSize: "0.95rem" },
   nameText: { fontWeight: "600", color: "#1e293b", lineHeight: "1.4" },
   programLink: { color: "#475569", cursor: "pointer", textDecoration: "underline", fontSize: "0.85rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
+
+  // Centered Cells
   centeredCell: { textAlign: "center", fontSize: "0.9rem", color: "#64748b" },
+
+  // Standard Text Cells
   cellText: { fontSize: "0.9rem", color: "#64748b", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
 
   // Category Badges
@@ -77,7 +82,6 @@ const styles = {
 
   // Modal
   overlay: { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 },
-  modal: { background: "white", padding: "30px", borderRadius: "12px", width: "650px", maxWidth: "90%", maxHeight: "90vh", overflowY: "auto", boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)" },
 
   formGroup: { marginBottom: "15px" },
   label: { display: "block", marginBottom: "5px", fontWeight: "600", fontSize: "0.85rem", color: "#64748b" },
@@ -295,7 +299,7 @@ export default function ModuleOverview({ onNavigate }) {
       {/* MODAL */}
       {(formMode === "add" || formMode === "edit") && (
         <div style={styles.overlay}>
-            <div style={styles.modal}>
+            <div style={{...styles.modal, width:'650px'}}>
                 <div style={{display:'flex', justifyContent:'space-between', marginBottom:'20px'}}>
                     <h3 style={{margin:0}}>{formMode === "add" ? "Create Module" : "Edit Module"}</h3>
                     <button onClick={() => setFormMode("overview")} style={{border:'none', background:'transparent', fontSize:'1.5rem', cursor:'pointer'}}>×</button>
@@ -378,7 +382,6 @@ function DeleteConfirmationModal({ moduleName, onClose, onConfirm }) {
 
     return (
         <div style={styles.overlay}>
-            {/* FIXED: Removed duplicate style prop, merged styles */}
             <div style={{...styles.modal, width:'450px'}}>
                 <h3 style={{ marginTop: 0, color: "#991b1b" }}>⚠️ Delete Module?</h3>
                 <p style={{ color: "#4b5563", marginBottom: "20px", lineHeight:'1.5' }}>
