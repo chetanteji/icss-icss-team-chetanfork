@@ -124,7 +124,6 @@ function ProgramList({ programs, lecturers, onSelect, refresh }) {
   const handleCreate = async () => {
     if(!newProg.name || !newProg.acronym) return alert("Name and Acronym are required.");
     try {
-        // location and status are now correctly passed
         await api.createProgram(newProg);
         setShowCreate(false);
         refresh();
@@ -208,6 +207,7 @@ function ProgramList({ programs, lecturers, onSelect, refresh }) {
 function ProgramWorkspace({ program, lecturers, specializations, modules, onBack, refreshSpecs, onUpdateProgram }) {
   const [activeTab, setActiveTab] = useState("INFO");
   const [isEditing, setIsEditing] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [editDraft, setEditDraft] = useState({});
 
   useEffect(() => {
@@ -222,19 +222,12 @@ function ProgramWorkspace({ program, lecturers, specializations, modules, onBack
     } catch(e) { alert("Failed to update program."); }
   };
 
-  const handleDeleteProgram = async () => {
-      if(!window.confirm(`Type DELETE to confirm deleting ${program.name}`)) return;
-      try {
-          await api.deleteProgram(program.id);
-          onBack();
-      } catch(e) { alert("Error deleting."); }
-  };
-
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
         <button style={{ ...styles.btn, background:"transparent", color:"#64748b", padding:0 }} onClick={onBack}>← Back to List</button>
-        <button style={{ ...styles.btn, ...styles.dangerBtn }} onClick={handleDeleteProgram}>Delete Program</button>
+        {/* ✅ FIX: Button now triggers the modal, not the immediate delete */}
+        <button style={{ ...styles.btn, ...styles.dangerBtn }} onClick={() => setShowDeleteModal(true)}>Delete Program</button>
       </div>
 
       <div style={{ marginBottom: "20px" }}>
@@ -323,10 +316,24 @@ function ProgramWorkspace({ program, lecturers, specializations, modules, onBack
         )}
 
       </div>
+
+      {/* ✅ FIX: Security Modal correctly implemented here */}
+      {showDeleteModal && (
+        <DeleteConfirmationModal
+            onClose={() => setShowDeleteModal(false)}
+            onConfirm={() => {
+                api.deleteProgram(program.id).then(() => {
+                    setShowDeleteModal(false);
+                    onBack(); // Go back to list after delete
+                }).catch(err => alert("Error deleting program."));
+            }}
+        />
+      )}
     </div>
   );
 }
 
+// --- HELPER: Field Display ---
 const FieldDisplay = ({ label, value, onChange, isEditing, type = "text" }) => (
     <div>
         <label style={{ display: "block", color: "#64748b", fontSize: "0.85rem", marginBottom: "5px" }}>{label}</label>
@@ -343,7 +350,7 @@ const FieldDisplay = ({ label, value, onChange, isEditing, type = "text" }) => (
     </div>
 );
 
-// --- HELPER: Specializations Manager (Fixed Status & Editing) ---
+// --- HELPER: Specializations Manager ---
 function SpecializationsManager({ programId, specializations, refresh }) {
     const [newSpec, setNewSpec] = useState({ name: "", acronym: "", start_date: "", status: true });
     const [editingSpecId, setEditingSpecId] = useState(null);
@@ -351,7 +358,6 @@ function SpecializationsManager({ programId, specializations, refresh }) {
 
     const handleAdd = async () => {
         if(!newSpec.name) return;
-        // Ensure program_id is passed so it connects in DB
         await api.createSpecialization({ ...newSpec, program_id: programId });
         setNewSpec({ name: "", acronym: "", start_date: "", status: true });
         refresh();
@@ -370,7 +376,6 @@ function SpecializationsManager({ programId, specializations, refresh }) {
 
     const saveEdit = async () => {
         try {
-            // New api.js method must match index.py PUT
             await api.updateSpecialization(editingSpecId, editDraft);
             setEditingSpecId(null);
             refresh();
@@ -456,6 +461,42 @@ function SpecializationsManager({ programId, specializations, refresh }) {
                     {specializations.length === 0 && <tr><td colSpan="5" style={{padding:'20px', textAlign:'center', color:'#94a3b8'}}>No specializations yet.</td></tr>}
                 </tbody>
             </table>
+        </div>
+    );
+}
+
+// --- HELPER: Delete Confirmation Modal ---
+function DeleteConfirmationModal({ onClose, onConfirm }) {
+    const [input, setInput] = useState("");
+    const isMatch = input === "DELETE";
+
+    return (
+        <div style={styles.overlay}>
+            <div style={styles.modal}>
+                <h3 style={{ marginTop: 0, color: "#991b1b" }}>⚠️ Delete Program?</h3>
+                <p style={{ color: "#4b5563", marginBottom: "20px" }}>
+                    This action cannot be undone. It will remove the program and unlink all related specializations and modules.
+                </p>
+                <p style={{ fontSize: "0.9rem", fontWeight: "bold", marginBottom: "5px" }}>
+                    Type "DELETE" to confirm:
+                </p>
+                <input
+                    style={styles.input}
+                    value={input}
+                    onChange={e => setInput(e.target.value)}
+                    placeholder="DELETE"
+                />
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+                    <button style={{ ...styles.btn, background: "#e5e7eb", color: "#374151" }} onClick={onClose}>Cancel</button>
+                    <button
+                        disabled={!isMatch}
+                        style={{ ...styles.btn, background: isMatch ? "#dc2626" : "#fca5a5", color: "white", cursor: isMatch ? "pointer" : "not-allowed" }}
+                        onClick={onConfirm}
+                    >
+                        Permanently Delete
+                    </button>
+                </div>
+            </div>
         </div>
     );
 }
