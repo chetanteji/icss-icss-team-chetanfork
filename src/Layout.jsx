@@ -1,4 +1,5 @@
 import React from "react";
+import api from "./api"; // ✅ Import API to handle login
 import "./App.css";
 
 const Layout = ({ activeTab, setActiveTab, children, currentUserRole, setCurrentUserRole }) => {
@@ -12,6 +13,52 @@ const Layout = ({ activeTab, setActiveTab, children, currentUserRole, setCurrent
       <span>{label}</span>
     </div>
   );
+
+  // ✅ NEW: Handle Role Switching via Real Login
+  const handleRoleChange = async (e) => {
+    const newRole = e.target.value;
+
+    // Prevent selecting the placeholder
+    if (newRole === "Guest") return;
+
+    let email = "";
+    const password = "password"; // Hardcoded from our seed script
+
+    // Map the selected label to the seed email
+    switch (newRole) {
+        case "PM": email = "pm@icss.com"; break; // Admin
+        case "HoSP": email = "hosp@icss.com"; break;
+        case "Lecturer": email = "lecturer@icss.com"; break;
+        case "Student": email = "student@icss.com"; break;
+        default: return;
+    }
+
+    try {
+        // 1. Call Login API
+        const data = await api.login(email, password);
+
+        // 2. Save Token
+        localStorage.setItem("token", data.access_token);
+        localStorage.setItem("userRole", data.role);
+
+        // 3. Update State & Force Reload to apply permissions
+        setCurrentUserRole(newRole);
+        window.location.reload();
+
+    } catch (err) {
+        alert("Login failed. Did you visit /api/seed yet? Error: " + err.message);
+        console.error(err);
+    }
+  };
+
+  // Helper to determine dropdown value (Handles "admin" vs "PM" casing issues)
+  const getDropdownValue = () => {
+    if (!currentUserRole || currentUserRole === "Guest") return "Guest";
+    if (currentUserRole === "admin") return "PM";
+    if (currentUserRole === "hosp") return "HoSP";
+    // Capitalize first letter for others (student -> Student)
+    return currentUserRole.charAt(0).toUpperCase() + currentUserRole.slice(1);
+  };
 
   return (
     <div className="app-container">
@@ -37,24 +84,29 @@ const Layout = ({ activeTab, setActiveTab, children, currentUserRole, setCurrent
           <NavLink id="availabilities" icon="" label="Availability" />
         </div>
 
-        {/* ✅ NEW: Role Selector Footer */}
-        <div className="sidebar-footer" style={{display:'flex', flexDirection:'column', gap:'5px'}}>
-          <span style={{fontSize:'0.75rem', textTransform:'uppercase', color:'#94a3b8'}}>Testing As:</span>
+        {/* ✅ REAL LOGIN SWITCHER */}
+        <div className="sidebar-footer" style={{ borderTop: '1px solid #334155', padding: '20px' }}>
+          <label style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: '#94a3b8', display: 'block', marginBottom: '8px' }}>
+            Switch Role (Auto-Login):
+          </label>
           <select
-            value={currentUserRole}
-            onChange={(e) => setCurrentUserRole(e.target.value)}
+            value={getDropdownValue()}
+            onChange={handleRoleChange}
             style={{
                 background: '#334155',
                 color: 'white',
                 border: '1px solid #475569',
-                padding: '5px',
-                borderRadius: '4px',
+                padding: '8px',
+                borderRadius: '6px',
+                width: '100%',
                 outline: 'none',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                fontSize: '0.9rem'
             }}
           >
-            <option value="Admin">Admin</option>
-            <option value="PM">Program Manager</option>
+            {/* ✅ Fix: Added Default Option so it doesn't auto-select Admin */}
+            <option value="Guest" disabled>Select a Role...</option>
+            <option value="PM">Program Manager (Admin)</option>
             <option value="HoSP">Head of Program</option>
             <option value="Lecturer">Lecturer</option>
             <option value="Student">Student</option>
@@ -69,10 +121,11 @@ const Layout = ({ activeTab, setActiveTab, children, currentUserRole, setCurrent
                 {activeTab.charAt(0).toUpperCase() + activeTab.slice(1).replace('-', ' ')}
             </h1>
             <span style={{
-                background:'#e2e8f0', color:'#475569', padding:'4px 10px',
-                borderRadius:'15px', fontSize:'0.8rem', fontWeight:'bold'
+                background: '#e2e8f0', color: '#475569', padding: '4px 12px',
+                borderRadius: '20px', fontSize: '0.75rem', fontWeight: 'bold',
+                textTransform: 'uppercase', letterSpacing: '0.05em'
             }}>
-                {currentUserRole} View
+                Logged in as: {currentUserRole}
             </span>
           </div>
         </div>
