@@ -31,10 +31,10 @@ def fix_database():
             connection.commit()
 
             # 1. Fix Study Programs (Add ID link)
+            # ✅ FIX: Added quotes around "ID" to match Postgres case-sensitivity
             try:
-                # Check if column exists first to avoid error
                 connection.execute(
-                    text("ALTER TABLE study_programs ADD COLUMN head_of_program_id INTEGER REFERENCES lecturers(ID)"))
+                    text('ALTER TABLE study_programs ADD COLUMN head_of_program_id INTEGER REFERENCES lecturers("ID")'))
                 connection.execute(text("ALTER TABLE study_programs ALTER COLUMN head_of_program DROP NOT NULL"))
                 connection.commit()
                 results.append("✅ Added head_of_program_id to study_programs")
@@ -42,8 +42,9 @@ def fix_database():
                 results.append(f"ℹ️ Study Programs check: {e}")
 
             # 2. Fix Users (Add Lecturer Link)
+            # ✅ FIX: Added quotes around "ID"
             try:
-                connection.execute(text("ALTER TABLE users ADD COLUMN lecturer_id INTEGER REFERENCES lecturers(ID)"))
+                connection.execute(text('ALTER TABLE users ADD COLUMN lecturer_id INTEGER REFERENCES lecturers("ID")'))
                 connection.commit()
                 results.append("✅ Added lecturer_id to users")
             except Exception as e:
