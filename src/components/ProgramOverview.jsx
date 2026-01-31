@@ -1,12 +1,14 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import api from "../api";
 
 // --- STYLES ---
 const styles = {
   container: { padding: "20px", fontFamily: "'Inter', sans-serif", color: "#333", maxWidth: "1200px", margin: "0 auto" },
 
-  // Header & Controls
+  // Controls Header
   controlsBar: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", gap: "15px", flexWrap: "wrap" },
+  leftControls: { display: "flex", gap: "15px", alignItems: "center", flex: 1 },
+
   searchBar: {
     padding: "10px 15px",
     borderRadius: "8px",
@@ -19,15 +21,20 @@ const styles = {
     outline: "none"
   },
 
+  // Toggle
+  toggleContainer: { display: "flex", background: "#e2e8f0", padding: "4px", borderRadius: "8px" },
+  toggleBtn: { padding: "6px 16px", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "0.9rem", fontWeight: "600", color: "#64748b", background: "transparent", transition: "all 0.2s" },
+  toggleBtnActive: { background: "white", color: "#3b82f6", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" },
+
   // LIST LAYOUT
   listContainer: { display: "flex", flexDirection: "column", gap: "12px" },
 
   listHeader: {
     display: "grid",
-    // Code | Name | Program | Semester | ECTS | Room Type | Actions
-    gridTemplateColumns: "80px 2fr 1.5fr 80px 60px 1.5fr 80px",
+    gridTemplateColumns: "90px 2fr 1.2fr 1.5fr 1fr 80px",
+    gap: "15px",
     padding: "0 25px",
-    marginBottom: "5px",
+    marginBottom: "8px",
     color: "#94a3b8",
     fontSize: "0.75rem",
     fontWeight: "700",
@@ -38,285 +45,569 @@ const styles = {
   listCard: {
     background: "white",
     borderRadius: "8px",
-    border: "none",
+    border: "1px solid transparent",
     cursor: "pointer",
-    transition: "background-color 0.2s ease",
+    transition: "background-color 0.15s ease, transform 0.1s ease",
     display: "grid",
-    gridTemplateColumns: "80px 2fr 1.5fr 80px 60px 1.5fr 80px",
+    gridTemplateColumns: "90px 2fr 1.2fr 1.5fr 1fr 80px",
     alignItems: "center",
-    padding: "16px 25px",
-    gap: "20px",
-    boxShadow: "0 2px 8px rgba(0,0,0,0.08)"
+    padding: "18px 25px",
+    gap: "15px",
+    boxShadow: "0 2px 5px rgba(0,0,0,0.04)"
   },
 
-  listCardHover: { backgroundColor: "#f1f5f9" },
+  // Hover State
+  listCardHover: {
+    backgroundColor: "#f1f5f9",
+    border: "1px solid #cbd5e1"
+  },
 
   // Typography
-  codeText: { fontWeight: "700", color: "#3b82f6" },
-  nameText: { fontWeight: "600", color: "#1e293b" },
-  programLink: { color: "#475569", cursor: "pointer", textDecoration: "underline", fontSize: "0.9rem" },
-  cellText: { fontSize: "0.9rem", color: "#64748b" },
+  progTitle: { margin: 0, fontSize: "1rem", fontWeight: "600", color: "#1e293b", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
+  progSubtitle: { margin: 0, fontSize: "0.85rem", color: "#64748b", fontWeight: "500" },
+  cellText: { fontSize: "0.9rem", color: "#475569", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
+  labelSmall: { fontSize: "0.75rem", color: "#94a3b8", marginRight: "6px", fontWeight: "500" },
 
-  // Buttons & Forms
-  btn: { padding: "8px 16px", borderRadius: "6px", border: "none", cursor: "pointer", fontSize: "0.9rem", fontWeight: "500", transition: "0.2s" },
+  // Tabs
+  tabContainer: { display: "flex", gap: "20px", marginBottom: "20px", borderBottom: "2px solid #e2e8f0" },
+  tab: { padding: "12px 0", cursor: "pointer", fontSize: "1rem", color: "#64748b", fontWeight: "500", borderBottom: "2px solid transparent", marginBottom: "-2px" },
+  activeTab: { color: "#3b82f6", borderBottom: "2px solid #3b82f6" },
+
+  // Forms & Inputs
+  btn: { padding: "8px 16px", borderRadius: "6px", border: "none", cursor: "pointer", fontSize: "0.9rem", fontWeight: "500", transition: "0.2s", display: "inline-flex", alignItems: "center", gap: "6px" },
   primaryBtn: { background: "#3b82f6", color: "white" },
-  editBtn: { background: "transparent", border: "1px solid #cbd5e1", color: "#475569", padding: "6px 12px" },
-  deleteBtn: { background: "transparent", border: "1px solid #fca5a5", color: "#ef4444", padding: "6px 12px", marginLeft: "8px" },
+  secondaryBtn: { background: "#e2e8f0", color: "#475569" },
+  dangerBtn: { background: "#fee2e2", color: "#ef4444" },
+  input: { width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "0.95rem", marginBottom: "15px", boxSizing: "border-box" },
+  select: { width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "0.95rem", marginBottom: "15px", background: "white" },
+
+  // Badges
+  badge: { padding: "4px 0", borderRadius: "6px", fontSize: "0.75rem", fontWeight: "bold", textTransform: "uppercase", display: "block", width: "100%", textAlign: "center" },
+  statusActive: { background: "#dcfce7", color: "#166534" },
+  statusInactive: { background: "#f1f5f9", color: "#94a3b8" },
+  ectsBadge: { fontWeight:'bold', color:'#333', background:'#f1f5f9', padding:'6px 0', borderRadius:'6px', textAlign:'center', fontSize:'0.85rem' },
 
   // Modal
   overlay: { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 },
-  modal: { background: "white", padding: "30px", borderRadius: "12px", width: "650px", maxWidth: "90%", maxHeight: "90vh", overflowY: "auto", boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)" },
-
-  formGroup: { marginBottom: "15px" },
-  label: { display: "block", marginBottom: "5px", fontWeight: "600", fontSize: "0.85rem", color: "#64748b" },
-  input: { width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "0.95rem", boxSizing: "border-box" },
-  select: { width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "0.95rem", background: "white" },
+  modal: { background: "white", padding: "30px", borderRadius: "12px", width: "500px", maxWidth: "90%", maxHeight: "90vh", overflowY: "auto", boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)" }
 };
 
-const STANDARD_ROOM_TYPES = ["Lecture Classroom", "Computer Lab", "Seminar"];
-const ASSESSMENT_TYPES = ["Written Exam", "Presentation", "Project", "Report"];
-const CATEGORY_TYPES = ["Core", "Shared", "Elective"];
+const formatDate = (isoDate) => {
+  if (!isoDate) return "-";
+  return new Date(isoDate).toLocaleDateString("de-DE");
+};
 
-export default function ModuleOverview({ onNavigate }) {
-  const [modules, setModules] = useState([]);
+export default function ProgramOverview({ initialData, clearInitialData }) {
+  const [view, setView] = useState("LIST");
+  const [selectedProgram, setSelectedProgram] = useState(null);
   const [programs, setPrograms] = useState([]);
+  const [lecturers, setLecturers] = useState([]);
   const [specializations, setSpecializations] = useState([]);
-  const [customRoomTypes, setCustomRoomTypes] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [query, setQuery] = useState("");
-  const [hoverId, setHoverId] = useState(null);
+  const [modules, setModules] = useState([]);
 
-  // Form State
-  const [formMode, setFormMode] = useState("overview"); // 'overview' | 'add' | 'edit'
-  const [editingCode, setEditingCode] = useState(null);
-  const [selectedSpecToAdd, setSelectedSpecToAdd] = useState("");
-  const [draft, setDraft] = useState({
-    module_code: "", name: "", ects: 5, room_type: "Lecture Classroom", semester: 1,
-    assessment_type: "Written Exam", category: "Core", program_id: "", specialization_ids: []
-  });
+  // Memoize refreshNestedData to prevent re-creation
+  const refreshNestedData = useCallback((progId) => {
+    api.getSpecializations().then(res => setSpecializations((res || []).filter(s => s.program_id === progId)));
+    api.getModules().then(res => setModules((res || []).filter(m => m.program_id === progId)));
+  }, []);
 
-  useEffect(() => { loadData(); }, []);
+  const handleProgramClick = useCallback((prog) => {
+    setSelectedProgram(prog);
+    setView("DETAIL");
+    refreshNestedData(prog.id);
+  }, [refreshNestedData]);
 
-  const loadData = async () => {
-    setLoading(true);
+  const loadData = useCallback(async () => {
     try {
-      const [modData, progData, specData, roomData] = await Promise.all([
-        api.getModules(), api.getPrograms(), api.getSpecializations(), api.getRooms()
-      ]);
-      setModules(Array.isArray(modData) ? modData : []);
-      setPrograms(Array.isArray(progData) ? progData : []);
-      setSpecializations(Array.isArray(specData) ? specData : []);
+        const [progData, lecData] = await Promise.all([
+            api.getPrograms(),
+            api.getLecturers()
+        ]);
+        setPrograms(progData || []);
+        setLecturers(lecData || []);
 
-      const existingCustom = (Array.isArray(roomData) ? roomData : [])
-        .map(r => r.type)
-        .filter(t => t && !STANDARD_ROOM_TYPES.includes(t));
-      setCustomRoomTypes([...new Set(existingCustom)].sort());
-    } catch (e) { console.error(e); } finally { setLoading(false); }
-  };
+        // Handle Deep Linking
+        if (initialData && initialData.programId) {
+            const target = (progData || []).find(p => p.id === initialData.programId);
+            if (target) {
+                // Must ensure handleProgramClick is stable or part of dependency
+                setSelectedProgram(target);
+                setView("DETAIL");
+                refreshNestedData(target.id);
+                if (clearInitialData) clearInitialData();
+            }
+        }
+    } catch(e) { console.error("Load Error", e); }
+  }, [initialData, clearInitialData, refreshNestedData]);
 
-  const filteredModules = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return modules.filter(m => m.name.toLowerCase().includes(q) || m.module_code.toLowerCase().includes(q));
-  }, [modules, query]);
+  useEffect(() => { loadData(); }, [loadData]);
 
-  const openAdd = () => {
-    setEditingCode(null);
-    setSelectedSpecToAdd("");
-    setDraft({
-      module_code: "", name: "", ects: 5, room_type: "Lecture Classroom", semester: 1,
-      assessment_type: "Written Exam", category: "Core", program_id: "", specialization_ids: []
-    });
-    setFormMode("add");
-  };
-
-  const openEdit = (m) => {
-    setEditingCode(m.module_code);
-    setSelectedSpecToAdd("");
-    setDraft({
-      module_code: m.module_code, name: m.name, ects: m.ects, room_type: m.room_type,
-      semester: m.semester, assessment_type: m.assessment_type || "Written Exam", category: m.category || "Core",
-      // Ensure program_id is treated as a string for the select input
-      program_id: m.program_id ? String(m.program_id) : "",
-      specialization_ids: (m.specializations || []).map(s => s.id)
-    });
-    setFormMode("edit");
-  };
-
-  const save = async () => {
-    if (!draft.module_code || !draft.name) return alert("Code and Name are required");
-
-    const payload = {
-        module_code: draft.module_code,
-        name: draft.name,
-        ects: parseInt(draft.ects),
-        room_type: draft.room_type,
-        semester: parseInt(draft.semester),
-        assessment_type: draft.assessment_type,
-        category: draft.category,
-        program_id: draft.program_id ? parseInt(draft.program_id) : null,
-        specialization_ids: draft.specialization_ids
-    };
-
-    try {
-      if (formMode === "add") await api.createModule(payload);
-      else await api.updateModule(editingCode, payload);
-      await loadData();
-      setFormMode("overview");
-    } catch (e) { alert("Error saving module."); }
-  };
-
-  const remove = async (code) => {
-    if (!window.confirm(`Delete module ${code}?`)) return;
-    try { await api.deleteModule(code); loadData(); } catch (e) { alert("Error deleting."); }
-  };
-
-  const linkSpecToDraft = () => {
-      if (!selectedSpecToAdd) return;
-      const specId = parseInt(selectedSpecToAdd);
-      if (!draft.specialization_ids.includes(specId)) {
-          setDraft(prev => ({ ...prev, specialization_ids: [...prev.specialization_ids, specId] }));
-      }
-      setSelectedSpecToAdd("");
-  };
-
-  const unlinkSpecFromDraft = (specId) => {
-      setDraft(prev => ({ ...prev, specialization_ids: prev.specialization_ids.filter(id => id !== specId) }));
-  };
-
-  const handleProgramClick = (programId) => {
-      if (programId && onNavigate) {
-          onNavigate("programs", { programId: programId });
-      }
+  const handleBack = () => {
+    setSelectedProgram(null);
+    setView("LIST");
+    loadData();
   };
 
   return (
     <div style={styles.container}>
-      {/* Controls */}
+      {view === "LIST" ? (
+        <ProgramList
+          programs={programs}
+          lecturers={lecturers}
+          onSelect={handleProgramClick}
+          refresh={loadData}
+        />
+      ) : (
+        <ProgramWorkspace
+          program={selectedProgram}
+          lecturers={lecturers}
+          specializations={specializations}
+          modules={modules}
+          onBack={handleBack}
+          refreshSpecs={() => refreshNestedData(selectedProgram.id)}
+          onUpdateProgram={(updated) => setSelectedProgram(updated)}
+        />
+      )}
+    </div>
+  );
+}
+
+// --- VIEW: LIST (Strict Grid) ---
+function ProgramList({ programs, lecturers, onSelect, refresh }) {
+  const [showCreate, setShowCreate] = useState(false);
+  const [levelFilter, setLevelFilter] = useState("Bachelor");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [hoverId, setHoverId] = useState(null);
+
+  const [newProg, setNewProg] = useState({
+      name: "", acronym: "", head_of_program: "",
+      total_ects: 180, level: "Bachelor", status: true,
+      start_date: "", location: ""
+  });
+
+  const handleCreate = async () => {
+    if(!newProg.name || !newProg.acronym) return alert("Name and Acronym are required.");
+    try {
+        await api.createProgram(newProg);
+        setShowCreate(false);
+        refresh();
+    } catch(e) { alert("Failed to create program."); }
+  };
+
+  const filtered = programs.filter(p => {
+      const matchesLevel = p.level === levelFilter;
+      const q = searchQuery.toLowerCase();
+      const matchesSearch =
+          p.name.toLowerCase().includes(q) ||
+          p.acronym.toLowerCase().includes(q) ||
+          (p.location && p.location.toLowerCase().includes(q));
+      return matchesLevel && matchesSearch;
+  });
+
+  return (
+    <div>
       <div style={styles.controlsBar}>
-        <input style={styles.searchBar} placeholder="Search modules..." value={query} onChange={(e) => setQuery(e.target.value)} />
-        <button style={{...styles.btn, ...styles.primaryBtn}} onClick={openAdd}>+ New Module</button>
+        <div style={styles.leftControls}>
+            <div style={styles.toggleContainer}>
+            <button style={{ ...styles.toggleBtn, ...(levelFilter === "Bachelor" ? styles.toggleBtnActive : {}) }} onClick={() => setLevelFilter("Bachelor")}>Bachelor</button>
+            <button style={{ ...styles.toggleBtn, ...(levelFilter === "Master" ? styles.toggleBtnActive : {}) }} onClick={() => setLevelFilter("Master")}>Master</button>
+            </div>
+            <input
+                style={styles.searchBar}
+                placeholder="Search programs..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+            />
+        </div>
+        <button style={{ ...styles.btn, ...styles.primaryBtn }} onClick={() => setShowCreate(true)}>+ New Program</button>
       </div>
 
-      {/* Header Row */}
+      {/* HEADER ROW */}
       <div style={styles.listHeader}>
-        <div>Code</div>
-        <div>Module Name</div>
-        <div>Program</div>
-        <div>Sem</div>
-        <div>ECTS</div>
-        <div>Type</div>
-        <div style={{textAlign: 'right'}}>Action</div>
+        <div>Status</div>
+        <div>Program Name</div>
+        <div>Location</div>
+        <div>HoSP</div>
+        <div>Start Date</div>
+        <div style={{textAlign:'center'}}>ECTS</div>
       </div>
 
-      {/* List Container */}
-      <div style={styles.listContainer}>
-        {loading ? (
-            <div style={{textAlign: 'center', padding: '40px', color: '#64748b'}}>Loading modules...</div>
-        ) : (
-            filteredModules.map((m) => {
-                const prog = programs.find(p => p.id === m.program_id);
-                return (
-                <div
-                    key={m.module_code}
-                    style={{ ...styles.listCard, ...(hoverId === m.module_code ? styles.listCardHover : {}) }}
-                    onMouseEnter={() => setHoverId(m.module_code)}
-                    onMouseLeave={() => setHoverId(null)}
-                >
-                    <div style={styles.codeText}>{m.module_code}</div>
-                    <div style={styles.nameText}>{m.name}</div>
-                    <div>
-                        {prog ? (
-                            <span
-                                style={styles.programLink}
-                                onClick={(e) => { e.stopPropagation(); handleProgramClick(prog.id); }}
-                            >
-                                {prog.name}
-                            </span>
-                        ) : (
-                            <span style={{...styles.cellText, fontStyle:'italic'}}>Global</span>
-                        )}
-                    </div>
-                    <div style={styles.cellText}>{m.semester}</div>
-                    <div style={{fontWeight:'bold', fontSize:'0.9rem', color:'#475569'}}>{m.ects}</div>
-                    <div style={styles.cellText}>{m.room_type}</div>
+      {/* DATA ROWS */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+        {filtered.map(p => (
+          <div
+            key={p.id}
+            style={{
+                ...styles.listCard,
+                ...(hoverId === p.id ? styles.listCardHover : {})
+            }}
+            onClick={() => onSelect(p)}
+            onMouseEnter={() => setHoverId(p.id)}
+            onMouseLeave={() => setHoverId(null)}
+          >
+            {/* 1. Status */}
+            <div>
+                <span style={{ ...styles.badge, ...(p.status ? styles.statusActive : styles.statusInactive) }}>
+                    {p.status ? "Active" : "Inactive"}
+                </span>
+            </div>
 
-                    <div style={{textAlign: 'right'}}>
-                        <button style={styles.editBtn} onClick={() => openEdit(m)}>Edit</button>
-                        <button style={styles.deleteBtn} onClick={() => remove(m.module_code)}>Del</button>
-                    </div>
-                </div>
-                );
-            })
-        )}
-        {!loading && filteredModules.length === 0 && <div style={{ color: "#94a3b8", padding: "40px", textAlign: "center", fontStyle: "italic" }}>No modules found.</div>}
+            {/* 2. Name */}
+            <div style={{minWidth: 0}}>
+                <h4 style={styles.progTitle}>{p.name}</h4>
+                <span style={styles.progSubtitle}>{p.acronym}</span>
+            </div>
+
+            {/* 3. Location */}
+            <div style={styles.cellText}>
+                {p.location || "-"}
+            </div>
+
+            {/* 4. HoSP */}
+            <div style={styles.cellText}>
+                {p.head_of_program || "-"}
+            </div>
+
+            {/* 5. Date */}
+            <div style={styles.cellText}>
+                {formatDate(p.start_date)}
+            </div>
+
+            {/* 6. ECTS */}
+            <div style={styles.ectsBadge}>{p.total_ects}</div>
+          </div>
+        ))}
+        {filtered.length === 0 && <div style={{ color: "#94a3b8", padding: "40px", textAlign: "center", fontStyle: "italic" }}>No programs found matching your search.</div>}
       </div>
 
-      {/* MODAL */}
-      {(formMode === "add" || formMode === "edit") && (
+      {/* CREATE MODAL */}
+      {showCreate && (
         <div style={styles.overlay}>
             <div style={styles.modal}>
-                <div style={{display:'flex', justifyContent:'space-between', marginBottom:'20px'}}>
-                    <h3 style={{margin:0}}>{formMode === "add" ? "Create Module" : "Edit Module"}</h3>
-                    <button onClick={() => setFormMode("overview")} style={{border:'none', background:'transparent', fontSize:'1.5rem', cursor:'pointer'}}>×</button>
-                </div>
-
-                <div style={{display:'flex', gap:'15px'}}>
-                    <div style={{...styles.formGroup, flex:1}}><label style={styles.label}>Module Code</label><input style={styles.input} value={draft.module_code} onChange={(e) => setDraft({ ...draft, module_code: e.target.value })} disabled={formMode === "edit"} placeholder="CS101" /></div>
-                    <div style={{...styles.formGroup, flex:2}}><label style={styles.label}>Name</label><input style={styles.input} value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} /></div>
-                </div>
-
-                <div style={{display:'flex', gap:'15px'}}>
-                    <div style={{...styles.formGroup, flex:1}}><label style={styles.label}>ECTS</label><input type="number" style={styles.input} value={draft.ects} onChange={(e) => setDraft({ ...draft, ects: e.target.value })} /></div>
-                    <div style={{...styles.formGroup, flex:1}}><label style={styles.label}>Semester</label><input type="number" style={styles.input} value={draft.semester} onChange={(e) => setDraft({ ...draft, semester: e.target.value })} /></div>
-                    <div style={{...styles.formGroup, flex:1}}><label style={styles.label}>Category</label><select style={styles.select} value={draft.category} onChange={(e) => setDraft({ ...draft, category: e.target.value })}>{CATEGORY_TYPES.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
-                </div>
-
-                <div style={{display:'flex', gap:'15px'}}>
-                    <div style={{...styles.formGroup, flex:1}}><label style={styles.label}>Room Type</label><select style={styles.select} value={draft.room_type} onChange={(e) => setDraft({...draft, room_type: e.target.value})}><optgroup label="Standard">{STANDARD_ROOM_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</optgroup>{customRoomTypes.length > 0 && (<optgroup label="Custom">{customRoomTypes.map(t => <option key={t} value={t}>{t}</option>)}</optgroup>)}</select></div>
-                    <div style={{...styles.formGroup, flex:1}}><label style={styles.label}>Assessment</label><select style={styles.select} value={draft.assessment_type} onChange={(e) => setDraft({ ...draft, assessment_type: e.target.value })}>{ASSESSMENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
-                </div>
-
-                <hr style={{margin:'20px 0', border:'0', borderTop:'1px solid #eee'}} />
-
-                <div style={styles.formGroup}>
-                    <label style={styles.label}>Study Program (Owner)</label>
-                    <select style={styles.select} value={draft.program_id} onChange={(e) => setDraft({ ...draft, program_id: e.target.value })}>
-                        <option value="">-- None / Global Module --</option>
-                        {programs.map(p => (<option key={p.id} value={p.id}>{p.name} ({p.level})</option>))}
+                <h3 style={{marginTop:0}}>Create New Program</h3>
+                <input style={styles.input} placeholder="Program Name" value={newProg.name} onChange={e => setNewProg({...newProg, name: e.target.value})} />
+                <div style={{display:'flex', gap:'10px'}}>
+                    <input style={styles.input} placeholder="Acronym (e.g. CS)" value={newProg.acronym} onChange={e => setNewProg({...newProg, acronym: e.target.value})} />
+                    <select style={styles.select} value={newProg.level} onChange={e => setNewProg({...newProg, level: e.target.value})}>
+                        <option>Bachelor</option><option>Master</option>
                     </select>
                 </div>
-
-                <div style={{...styles.formGroup, background: '#f9f9f9', padding: '15px', borderRadius: '6px', border:'1px solid #eee'}}>
-                    <label style={{...styles.label, marginBottom:'10px'}}>Linked Specializations</label>
-                    <div style={{display:'flex', gap:'10px', marginBottom:'15px'}}>
-                        <select style={styles.select} value={selectedSpecToAdd} onChange={(e) => setSelectedSpecToAdd(e.target.value)}>
-                            <option value="">-- Select Specialization --</option>
-                            {specializations.filter(s => !draft.specialization_ids.includes(s.id)).map(s => (<option key={s.id} value={s.id}>{s.name} ({s.acronym})</option>))}
-                        </select>
-                        <button type="button" style={{...styles.btn, ...styles.primaryBtn}} onClick={linkSpecToDraft}>Link</button>
-                    </div>
-                    <div style={{maxHeight:'150px', overflowY:'auto', display:'flex', flexWrap:'wrap', gap:'8px'}}>
-                        {draft.specialization_ids.map(specId => {
-                            const spec = specializations.find(s => s.id === specId);
-                            if (!spec) return null;
-                            return (
-                                <div key={spec.id} style={{background:'white', border:'1px solid #ddd', padding:'4px 10px', borderRadius:'15px', fontSize:'0.85rem', display:'flex', alignItems:'center', gap:'8px'}}>
-                                    <span>{spec.acronym}</span>
-                                    <button onClick={() => unlinkSpecFromDraft(spec.id)} style={{border:'none', background:'transparent', color:'#ef4444', cursor:'pointer', fontWeight:'bold'}}>×</button>
-                                </div>
-                            );
-                        })}
-                        {draft.specialization_ids.length === 0 && <div style={{fontStyle:'italic', color:'#999'}}>No specializations linked.</div>}
-                    </div>
+                <div style={{display:'flex', gap:'10px'}}>
+                    <input type="date" style={styles.input} value={newProg.start_date} onChange={e => setNewProg({...newProg, start_date: e.target.value})} />
+                    <input style={styles.input} placeholder="Location (e.g. Berlin)" value={newProg.location} onChange={e => setNewProg({...newProg, location: e.target.value})} />
+                </div>
+                <select style={styles.select} value={newProg.head_of_program} onChange={e => setNewProg({...newProg, head_of_program: e.target.value})}>
+                    <option value="">-- Select Head --</option>
+                    {lecturers.map(l => <option key={l.id} value={`${l.first_name} ${l.last_name}`}>{l.first_name} {l.last_name}</option>)}
+                </select>
+                <div style={{display:'flex', gap:'10px', alignItems:'center', marginBottom:'15px'}}>
+                    <input type="number" style={{...styles.input, marginBottom:0}} placeholder="ECTS" value={newProg.total_ects} onChange={e => setNewProg({...newProg, total_ects: e.target.value})} />
+                    <label style={{display:'flex', alignItems:'center', gap:'10px', cursor:'pointer', whiteSpace:'nowrap'}}>
+                        <input type="checkbox" checked={newProg.status} onChange={e => setNewProg({...newProg, status: e.target.checked})} />
+                        Active Status
+                    </label>
                 </div>
 
-                <div style={{marginTop: '25px', display:'flex', justifyContent:'flex-end', gap:'10px'}}>
-                    <button style={{...styles.btn, background:'#f8f9fa', border:'1px solid #ddd'}} onClick={() => setFormMode("overview")}>Cancel</button>
-                    <button style={{...styles.btn, ...styles.primaryBtn}} onClick={save}>Save</button>
+                <div style={{display:'flex', justifyContent:'flex-end', gap:'10px', marginTop:'20px'}}>
+                    <button style={{...styles.btn, ...styles.secondaryBtn}} onClick={() => setShowCreate(false)}>Cancel</button>
+                    <button style={{...styles.btn, ...styles.primaryBtn}} onClick={handleCreate}>Create</button>
                 </div>
             </div>
         </div>
       )}
     </div>
   );
+}
+
+// --- VIEW: WORKSPACE (Detail) ---
+function ProgramWorkspace({ program, lecturers, specializations, modules, onBack, refreshSpecs, onUpdateProgram }) {
+  const [activeTab, setActiveTab] = useState("INFO");
+  const [isEditing, setIsEditing] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [editDraft, setEditDraft] = useState({});
+
+  useEffect(() => {
+    setEditDraft({ ...program });
+  }, [program]);
+
+  const handleSaveInfo = async () => {
+    try {
+        await api.updateProgram(program.id, editDraft);
+        onUpdateProgram(editDraft);
+        setIsEditing(false);
+    } catch(e) { alert("Failed to update program."); }
+  };
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+        <button style={{ ...styles.btn, background:"transparent", color:"#64748b", padding:0 }} onClick={onBack}>← Back to List</button>
+        <button style={{ ...styles.btn, ...styles.dangerBtn }} onClick={() => setShowDeleteModal(true)}>Delete Program</button>
+      </div>
+
+      <div style={{ marginBottom: "20px" }}>
+        <h1 style={{ margin: 0, fontSize: "2rem", color: "#1e293b", fontWeight: "700" }}>{program.name}</h1>
+        <div style={{ color: "#64748b", marginTop: "5px" }}>{program.level} • {program.acronym}</div>
+      </div>
+
+      <div style={styles.tabContainer}>
+        {["INFO", "SPECS", "MODULES"].map(t => (
+            <div
+                key={t}
+                style={{ ...styles.tab, ...(activeTab === t ? styles.activeTab : {}) }}
+                onClick={() => setActiveTab(t)}
+            >
+                {t === "INFO" ? "General Info" : t === "SPECS" ? `Specializations (${specializations.length})` : `Curriculum (${modules.length})`}
+            </div>
+        ))}
+      </div>
+
+      <div style={{ background: "white", padding: "30px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+
+        {activeTab === "INFO" && (
+          <div>
+             <div style={{display:'flex', justifyContent:'space-between', marginBottom:'20px'}}>
+                <h3>Program Details</h3>
+                {!isEditing
+                    ? <button style={{...styles.btn, ...styles.secondaryBtn}} onClick={() => setIsEditing(true)}>Edit Details</button>
+                    : <div style={{display:'flex', gap:'10px'}}>
+                        <button style={{...styles.btn, background:'transparent', border:'1px solid #ccc'}} onClick={() => { setIsEditing(false); setEditDraft({...program}); }}>Cancel</button>
+                        <button style={{...styles.btn, ...styles.primaryBtn}} onClick={handleSaveInfo}>Save Changes</button>
+                      </div>
+                }
+             </div>
+
+             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", maxWidth: "800px" }}>
+                <FieldDisplay label="Program Name" isEditing={isEditing} value={editDraft.name} onChange={v => setEditDraft({...editDraft, name: v})} />
+                <FieldDisplay label="Acronym" isEditing={isEditing} value={editDraft.acronym} onChange={v => setEditDraft({...editDraft, acronym: v})} />
+
+                <div>
+                    <label style={{ display: "block", color: "#64748b", fontSize: "0.85rem", marginBottom: "5px" }}>Head of Program</label>
+                    {isEditing ? (
+                        <select style={styles.select} value={editDraft.head_of_program} onChange={e => setEditDraft({...editDraft, head_of_program: e.target.value})}>
+                             {lecturers.map(l => <option key={l.id} value={`${l.first_name} ${l.last_name}`}>{l.first_name} {l.last_name}</option>)}
+                        </select>
+                    ) : <div style={{ fontWeight: "500" }}>{program.head_of_program}</div>}
+                </div>
+
+                <FieldDisplay label="Total ECTS" type="number" isEditing={isEditing} value={editDraft.total_ects} onChange={v => setEditDraft({...editDraft, total_ects: v})} />
+                <FieldDisplay label="Start Date" type="date" isEditing={isEditing} value={editDraft.start_date} onChange={v => setEditDraft({...editDraft, start_date: v})} />
+                <FieldDisplay label="Location" isEditing={isEditing} value={editDraft.location} onChange={v => setEditDraft({...editDraft, location: v})} />
+
+                <div>
+                    <label style={{ display: "block", color: "#64748b", fontSize: "0.85rem", marginBottom: "5px" }}>Status</label>
+                    {isEditing ? (
+                        <label style={{display:'flex', alignItems:'center', gap:'10px', cursor:'pointer'}}>
+                            <input type="checkbox" checked={editDraft.status} onChange={e => setEditDraft({...editDraft, status: e.target.checked})} />
+                            {editDraft.status ? "Active" : "Inactive"}
+                        </label>
+                    ) : (
+                        <span style={{ ...styles.badge, ...(program.status ? styles.statusActive : styles.statusInactive) }}>
+                            {program.status ? "Active" : "Inactive"}
+                        </span>
+                    )}
+                </div>
+             </div>
+          </div>
+        )}
+
+        {activeTab === "SPECS" && (
+            <SpecializationsManager programId={program.id} specializations={specializations} refresh={refreshSpecs} />
+        )}
+
+        {activeTab === "MODULES" && (
+          <div>
+            <h3>Curriculum Structure</h3>
+            <div style={{ display: "grid", gap: "10px", marginTop: "20px" }}>
+                {modules.map(m => (
+                    <div key={m.module_code} style={{ padding: "15px", border: "1px solid #e2e8f0", borderRadius: "8px", display: "flex", justifyContent: "space-between" }}>
+                        <div><strong>{m.module_code}</strong> - {m.name}</div>
+                        <div style={{ color: "#64748b" }}>Semester {m.semester} • {m.ects} ECTS</div>
+                    </div>
+                ))}
+                {modules.length === 0 && <div style={{ color: "#94a3b8" }}>No modules linked. Go to "Modules" to assign them.</div>}
+            </div>
+          </div>
+        )}
+
+      </div>
+
+      {showDeleteModal && (
+        <DeleteConfirmationModal
+            onClose={() => setShowDeleteModal(false)}
+            onConfirm={() => {
+                api.deleteProgram(program.id).then(() => {
+                    setShowDeleteModal(false);
+                    onBack();
+                }).catch(err => alert("Error deleting program."));
+            }}
+        />
+      )}
+    </div>
+  );
+}
+
+const FieldDisplay = ({ label, value, onChange, isEditing, type = "text" }) => (
+    <div>
+        <label style={{ display: "block", color: "#64748b", fontSize: "0.85rem", marginBottom: "5px" }}>{label}</label>
+        {isEditing ? (
+            <input
+                type={type}
+                style={{...styles.input, marginBottom:0}}
+                value={value || ""}
+                onChange={e => onChange(e.target.value)}
+            />
+        ) : (
+            <div style={{ fontSize: "1rem", fontWeight: "500" }}>{type === 'date' ? formatDate(value) : value || "-"}</div>
+        )}
+    </div>
+);
+
+function SpecializationsManager({ programId, specializations, refresh }) {
+    const [newSpec, setNewSpec] = useState({ name: "", acronym: "", start_date: "", status: true });
+    const [editingSpecId, setEditingSpecId] = useState(null);
+    const [editDraft, setEditDraft] = useState({});
+
+    const handleAdd = async () => {
+        if(!newSpec.name) return;
+        await api.createSpecialization({ ...newSpec, program_id: programId });
+        setNewSpec({ name: "", acronym: "", start_date: "", status: true });
+        refresh();
+    };
+
+    const handleDelete = async (id) => {
+        if(!window.confirm("Delete specialization?")) return;
+        await api.deleteSpecialization(id);
+        refresh();
+    };
+
+    const startEdit = (spec) => {
+        setEditingSpecId(spec.id);
+        setEditDraft({ ...spec });
+    };
+
+    const saveEdit = async () => {
+        try {
+            await api.updateSpecialization(editingSpecId, editDraft);
+            setEditingSpecId(null);
+            refresh();
+        } catch(e) { alert("Update failed"); }
+    };
+
+    return (
+        <div>
+            {/* Add New Row */}
+            <div style={{background:'#f8fafc', padding:'15px', borderRadius:'8px', marginBottom:'20px', display:'flex', gap:'10px', alignItems:'flex-end'}}>
+                <div style={{flex:2}}>
+                    <label style={{fontSize:'0.8rem', fontWeight:'bold'}}>Name</label>
+                    <input style={{...styles.input, marginBottom:0}} value={newSpec.name} onChange={e => setNewSpec({...newSpec, name: e.target.value})} placeholder="e.g. Artificial Intelligence" />
+                </div>
+                <div style={{flex:1}}>
+                    <label style={{fontSize:'0.8rem', fontWeight:'bold'}}>Acronym</label>
+                    <input style={{...styles.input, marginBottom:0}} value={newSpec.acronym} onChange={e => setNewSpec({...newSpec, acronym: e.target.value})} placeholder="AI" />
+                </div>
+                <div style={{flex:1}}>
+                    <label style={{fontSize:'0.8rem', fontWeight:'bold'}}>Start Date</label>
+                    <input type="date" style={{...styles.input, marginBottom:0}} value={newSpec.start_date} onChange={e => setNewSpec({...newSpec, start_date: e.target.value})} />
+                </div>
+                <div style={{flex:0.5}}>
+                    <label style={{fontSize:'0.8rem', fontWeight:'bold'}}>Status</label>
+                    <select style={{...styles.input, marginBottom:0}} value={newSpec.status} onChange={e => setNewSpec({...newSpec, status: e.target.value === 'true'})}>
+                        <option value="true">Active</option>
+                        <option value="false">Inactive</option>
+                    </select>
+                </div>
+                <button style={{...styles.btn, ...styles.primaryBtn, height:'42px'}} onClick={handleAdd}>Add Spec</button>
+            </div>
+
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                    <tr style={{ borderBottom: "2px solid #e2e8f0", textAlign: "left" }}>
+                        <th style={{ padding: "10px" }}>Name</th>
+                        <th style={{ padding: "10px" }}>Acronym</th>
+                        <th style={{ padding: "10px" }}>Start Date</th>
+                        <th style={{ padding: "10px" }}>Status</th>
+                        <th style={{ padding: "10px", textAlign: "right" }}>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {specializations.map(s => {
+                        const isEditing = editingSpecId === s.id;
+                        return (
+                            <tr key={s.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                                <td style={{ padding: "12px 10px" }}>
+                                    {isEditing ? <input style={styles.input} value={editDraft.name} onChange={e => setEditDraft({...editDraft, name: e.target.value})} /> : s.name}
+                                </td>
+                                <td style={{ padding: "12px 10px", fontWeight: "600" }}>
+                                    {isEditing ? <input style={styles.input} value={editDraft.acronym} onChange={e => setEditDraft({...editDraft, acronym: e.target.value})} /> : s.acronym}
+                                </td>
+                                <td style={{ padding: "12px 10px" }}>
+                                    {isEditing ? <input type="date" style={styles.input} value={editDraft.start_date} onChange={e => setEditDraft({...editDraft, start_date: e.target.value})} /> : formatDate(s.start_date)}
+                                </td>
+                                <td style={{ padding: "12px 10px" }}>
+                                    {isEditing ? (
+                                        <select style={styles.input} value={editDraft.status} onChange={e => setEditDraft({...editDraft, status: e.target.value === 'true'})}>
+                                            <option value="true">Active</option>
+                                            <option value="false">Inactive</option>
+                                        </select>
+                                    ) : (
+                                        <span style={{ ...styles.badge, ...(s.status ? styles.statusActive : styles.statusInactive) }}>{s.status ? "Active" : "Inactive"}</span>
+                                    )}
+                                </td>
+                                <td style={{ padding: "12px 10px", textAlign: "right" }}>
+                                    {isEditing ? (
+                                        <div style={{display:'flex', gap:'5px', justifyContent:'flex-end'}}>
+                                            <button style={{...styles.btn, ...styles.primaryBtn, padding:'4px 8px'}} onClick={saveEdit}>Save</button>
+                                            <button style={{...styles.btn, background:'#ccc', padding:'4px 8px'}} onClick={() => setEditingSpecId(null)}>Cancel</button>
+                                        </div>
+                                    ) : (
+                                        <div style={{display:'flex', gap:'5px', justifyContent:'flex-end'}}>
+                                            <button style={{ background: "none", border: "none", color: "#64748b", cursor: "pointer", fontWeight:600 }} onClick={() => startEdit(s)}>Edit</button>
+                                            <button style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontWeight:600 }} onClick={() => handleDelete(s.id)}>Remove</button>
+                                        </div>
+                                    )}
+                                </td>
+                            </tr>
+                        );
+                    })}
+                    {specializations.length === 0 && <tr><td colSpan="5" style={{padding:'20px', textAlign:'center', color:'#94a3b8'}}>No specializations yet.</td></tr>}
+                </tbody>
+            </table>
+        </div>
+    );
+}
+
+function DeleteConfirmationModal({ onClose, onConfirm }) {
+    const [input, setInput] = useState("");
+    const isMatch = input === "DELETE";
+
+    return (
+        <div style={styles.overlay}>
+            <div style={styles.modal}>
+                <h3 style={{ marginTop: 0, color: "#991b1b" }}>⚠️ Delete Program?</h3>
+                <p style={{ color: "#4b5563", marginBottom: "20px" }}>
+                    This action cannot be undone. It will remove the program and unlink all related specializations and modules.
+                </p>
+                <p style={{ fontSize: "0.9rem", fontWeight: "bold", marginBottom: "5px" }}>
+                    Type "DELETE" to confirm:
+                </p>
+                <input
+                    style={styles.input}
+                    value={input}
+                    onChange={e => setInput(e.target.value)}
+                    placeholder="DELETE"
+                />
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+                    <button style={{ ...styles.btn, background: "#e5e7eb", color: "#374151" }} onClick={onClose}>Cancel</button>
+                    <button
+                        disabled={!isMatch}
+                        style={{ ...styles.btn, background: isMatch ? "#dc2626" : "#fca5a5", color: "white", cursor: isMatch ? "pointer" : "not-allowed" }}
+                        onClick={onConfirm}
+                    >
+                        Permanently Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
 }
