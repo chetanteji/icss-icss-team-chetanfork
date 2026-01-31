@@ -22,10 +22,10 @@ const styles = {
   // LIST LAYOUT
   listContainer: { display: "flex", flexDirection: "column", gap: "12px" },
 
+  // Updated Grid: Code | Name | Program | Semester | Category | ECTS | Assessment | Room Type | Actions
   listHeader: {
     display: "grid",
-    // Code | Name | Program | Semester | ECTS | Room Type | Actions
-    gridTemplateColumns: "80px 2fr 1.5fr 80px 60px 1.5fr 80px",
+    gridTemplateColumns: "80px 2fr 1.5fr 80px 100px 60px 1.2fr 1.2fr 110px",
     padding: "0 25px",
     marginBottom: "5px",
     color: "#94a3b8",
@@ -42,26 +42,36 @@ const styles = {
     cursor: "pointer",
     transition: "background-color 0.2s ease",
     display: "grid",
-    gridTemplateColumns: "80px 2fr 1.5fr 80px 60px 1.5fr 80px",
+    gridTemplateColumns: "80px 2fr 1.5fr 80px 100px 60px 1.2fr 1.2fr 110px", // Matches Header
     alignItems: "center",
     padding: "16px 25px",
-    gap: "20px",
+    gap: "15px",
     boxShadow: "0 2px 8px rgba(0,0,0,0.08)"
   },
 
   listCardHover: { backgroundColor: "#f1f5f9" },
 
   // Typography
-  codeText: { fontWeight: "700", color: "#3b82f6" },
-  nameText: { fontWeight: "600", color: "#1e293b" },
-  programLink: { color: "#475569", cursor: "pointer", textDecoration: "underline", fontSize: "0.9rem" },
-  cellText: { fontSize: "0.9rem", color: "#64748b" },
+  codeText: { fontWeight: "700", color: "#3b82f6", fontSize: "0.95rem" },
+  nameText: { fontWeight: "600", color: "#1e293b", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
+  programLink: { color: "#475569", cursor: "pointer", textDecoration: "underline", fontSize: "0.85rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
+  cellText: { fontSize: "0.9rem", color: "#64748b", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
+
+  // Category Badges
+  catBadge: { padding: "4px 8px", borderRadius: "6px", fontSize: "0.75rem", fontWeight: "bold", textAlign: "center", textTransform: "uppercase" },
+  catCore: { background: "#dbeafe", color: "#1e40af" },
+  catElective: { background: "#fef3c7", color: "#92400e" },
+  catShared: { background: "#f3e8ff", color: "#6b21a8" },
 
   // Buttons & Forms
   btn: { padding: "8px 16px", borderRadius: "6px", border: "none", cursor: "pointer", fontSize: "0.9rem", fontWeight: "500", transition: "0.2s" },
   primaryBtn: { background: "#3b82f6", color: "white" },
-  editBtn: { background: "transparent", border: "1px solid #cbd5e1", color: "#475569", padding: "6px 12px" },
-  deleteBtn: { background: "transparent", border: "1px solid #fca5a5", color: "#ef4444", padding: "6px 12px", marginLeft: "8px" },
+
+  // Action Buttons (Horizontal & Rounded)
+  actionContainer: { display: "flex", gap: "8px", justifyContent: "flex-end" },
+  actionBtn: { padding: "6px 12px", borderRadius: "6px", border: "none", cursor: "pointer", fontSize: "0.85rem", fontWeight: "600" },
+  editBtn: { background: "#e2e8f0", color: "#475569" },
+  deleteBtn: { background: "#fee2e2", color: "#ef4444" },
 
   // Modal
   overlay: { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 },
@@ -135,7 +145,6 @@ export default function ModuleOverview({ onNavigate }) {
     setDraft({
       module_code: m.module_code, name: m.name, ects: m.ects, room_type: m.room_type,
       semester: m.semester, assessment_type: m.assessment_type || "Written Exam", category: m.category || "Core",
-      // Ensure program_id is treated as a string for the select input
       program_id: m.program_id ? String(m.program_id) : "",
       specialization_ids: (m.specializations || []).map(s => s.id)
     });
@@ -189,6 +198,13 @@ export default function ModuleOverview({ onNavigate }) {
       }
   };
 
+  // Helper for Category Color
+  const getCategoryStyle = (cat) => {
+      if (cat === "Core") return styles.catCore;
+      if (cat === "Elective") return styles.catElective;
+      return styles.catShared;
+  };
+
   return (
     <div style={styles.container}>
       {/* Controls */}
@@ -202,9 +218,11 @@ export default function ModuleOverview({ onNavigate }) {
         <div>Code</div>
         <div>Module Name</div>
         <div>Program</div>
-        <div>Sem</div>
+        <div>Semester</div>
+        <div>Category</div>
         <div>ECTS</div>
-        <div>Type</div>
+        <div>Assessment</div>
+        <div>Room Type</div>
         <div style={{textAlign: 'right'}}>Action</div>
       </div>
 
@@ -224,6 +242,8 @@ export default function ModuleOverview({ onNavigate }) {
                 >
                     <div style={styles.codeText}>{m.module_code}</div>
                     <div style={styles.nameText}>{m.name}</div>
+
+                    {/* Program Link */}
                     <div>
                         {prog ? (
                             <span
@@ -236,13 +256,23 @@ export default function ModuleOverview({ onNavigate }) {
                             <span style={{...styles.cellText, fontStyle:'italic'}}>Global</span>
                         )}
                     </div>
+
                     <div style={styles.cellText}>{m.semester}</div>
+
+                    {/* Category Tag */}
+                    <div>
+                        <span style={{...styles.catBadge, ...getCategoryStyle(m.category)}}>{m.category}</span>
+                    </div>
+
                     <div style={{fontWeight:'bold', fontSize:'0.9rem', color:'#475569'}}>{m.ects}</div>
+
+                    <div style={styles.cellText}>{m.assessment_type || "-"}</div>
                     <div style={styles.cellText}>{m.room_type}</div>
 
-                    <div style={{textAlign: 'right'}}>
-                        <button style={styles.editBtn} onClick={() => openEdit(m)}>Edit</button>
-                        <button style={styles.deleteBtn} onClick={() => remove(m.module_code)}>Del</button>
+                    {/* Actions */}
+                    <div style={styles.actionContainer}>
+                        <button style={{...styles.actionBtn, ...styles.editBtn}} onClick={() => openEdit(m)}>Edit</button>
+                        <button style={{...styles.actionBtn, ...styles.deleteBtn}} onClick={() => remove(m.module_code)}>Del</button>
                     </div>
                 </div>
                 );
@@ -301,7 +331,8 @@ export default function ModuleOverview({ onNavigate }) {
                             if (!spec) return null;
                             return (
                                 <div key={spec.id} style={{background:'white', border:'1px solid #ddd', padding:'4px 10px', borderRadius:'15px', fontSize:'0.85rem', display:'flex', alignItems:'center', gap:'8px'}}>
-                                    <span>{spec.acronym}</span>
+                                    {/* ✅ FIX: Name first, Acronym in parens */}
+                                    <span>{spec.name} ({spec.acronym})</span>
                                     <button onClick={() => unlinkSpecFromDraft(spec.id)} style={{border:'none', background:'transparent', color:'#ef4444', cursor:'pointer', fontWeight:'bold'}}>×</button>
                                 </div>
                             );
