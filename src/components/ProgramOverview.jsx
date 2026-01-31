@@ -403,7 +403,7 @@ function ProgramWorkspace({ program, lecturers, specializations, modules, onBack
 
         {activeTab === "MODULES" && (
           <div>
-            <h3>Curriculum Structure</h3>
+            <h3>Modules</h3>
             <div style={{ display: "grid", gap: "10px", marginTop: "20px" }}>
                 {modules.map(m => (
                     <div key={m.module_code} style={{ padding: "15px", border: "1px solid #e2e8f0", borderRadius: "8px", display: "flex", justifyContent: "space-between" }}>
