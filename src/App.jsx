@@ -1,19 +1,19 @@
 import React, { useState } from "react";
-import Layout from "./Layout";
+import "./App.css";
+import Layout from "./Layout"; // Same folder
 
-// Import your existing components
-import ProgramOverview from "./ProgramOverview";
-import ModuleOverview from "./ModuleOverview";
-import LecturerOverview from "./LecturerOverview";
-import RoomOverview from "./RoomOverview";
-import GroupOverview from "./GroupOverview";
-import ConstraintOverview from "./ConstraintOverview";
-import AvailabilityOverview from "./AvailabilityOverview";
+// Import components from the components folder
+import ProgramOverview from "./components/ProgramOverview";
+import ModuleOverview from "./components/ModuleOverview";
+import LecturerOverview from "./components/LecturerOverview";
+import RoomOverview from "./components/RoomOverview";
+import GroupOverview from "./components/GroupOverview";
+import ConstraintOverview from "./components/ConstraintOverview";
+import AvailabilityOverview from "./components/AvailabilityOverview";
 
 function App() {
   const [activeTab, setActiveTab] = useState("programs");
 
-  // Logic to render the correct component inside the layout
   const renderContent = () => {
     switch (activeTab) {
       case "programs":
