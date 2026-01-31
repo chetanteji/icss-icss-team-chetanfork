@@ -70,11 +70,10 @@ const styles = {
   modal: { backgroundColor: "#ffffff", padding: "30px", borderRadius: "12px", width: "650px", maxWidth: "90%", maxHeight: "90vh", overflowY: "auto", boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)" }
 };
 
-// ✅ UPDATED: Ensures leading zeros for dates (e.g., 15.01.2026)
+// ✅ FORMAT DATE Utility (15.01.2026 fix)
 const formatDate = (isoDate) => {
   if (!isoDate) return "-";
   const d = new Date(isoDate);
-  if (isNaN(d.getTime())) return isoDate; // Fallback if not a standard date
   const day = String(d.getDate()).padStart(2, '0');
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const year = d.getFullYear();
@@ -89,12 +88,12 @@ export default function ProgramOverview({ initialData, clearInitialData, current
   const [specializations, setSpecializations] = useState([]);
   const [modules, setModules] = useState([]);
 
-  // ✅ PERMISSION LOGIC (Case Insensitive FIX):
+  // ✅ ROLE-BASED PERMISSIONS (Lowercase FIX)
   const role = currentUserRole?.toLowerCase();
   const isPM = ["admin", "pm"].includes(role);
 
-  // Helper to check if a user can edit a SPECIFIC program
-  const canEditProgram = (program) => {
+  // Helper to check if user can manage a specific program
+  const canManageProgram = (program) => {
     if (isPM) return true;
     if (role === "hosp") {
         const loggedInLecturerId = parseInt(localStorage.getItem("lecturerId"));
@@ -154,7 +153,7 @@ export default function ProgramOverview({ initialData, clearInitialData, current
           onSelect={handleProgramClick}
           refresh={loadData}
           isPM={isPM}
-          canEditProgram={canEditProgram}
+          canManageProgram={canManageProgram}
         />
       ) : (
         <ProgramWorkspace
@@ -165,14 +164,14 @@ export default function ProgramOverview({ initialData, clearInitialData, current
           onBack={handleBack}
           refreshSpecs={() => refreshNestedData(selectedProgram.id)}
           onUpdateProgram={(updated) => setSelectedProgram(updated)}
-          canEdit={canEditProgram(selectedProgram)}
+          canEdit={canManageProgram(selectedProgram)}
         />
       )}
     </div>
   );
 }
 
-function ProgramList({ programs, lecturers, onSelect, refresh, isPM, canEditProgram }) {
+function ProgramList({ programs, lecturers, onSelect, refresh, isPM, canManageProgram }) {
   const [showCreate, setShowCreate] = useState(false);
   const [levelFilter, setLevelFilter] = useState("Bachelor");
   const [searchQuery, setSearchQuery] = useState("");
@@ -241,7 +240,7 @@ function ProgramList({ programs, lecturers, onSelect, refresh, isPM, canEditProg
       <div style={styles.listContainer}>
         {filtered.map(p => {
             const degreeStyle = DEGREE_STYLES[p.degree_type] || DEGREE_STYLES["default"];
-            const hasEditRights = canEditProgram(p);
+            const hasEditRights = canManageProgram(p);
             return (
                 <div
                     key={p.id}
@@ -270,7 +269,7 @@ function ProgramList({ programs, lecturers, onSelect, refresh, isPM, canEditProg
                     </div>
                     <div style={styles.cellText}>{p.location || "-"}</div>
 
-                    {/* ✅ UPDATED: Full HoSP Name rendering */}
+                    {/* ✅ DISPLAY COMPUTED NAME (Title First Last): */}
                     <div style={styles.cellText}>
                         {p.head_lecturer
                             ? `${p.head_lecturer.title} ${p.head_lecturer.first_name} ${p.head_lecturer.last_name}`
@@ -526,7 +525,6 @@ function ProgramWorkspace({ program, lecturers, specializations, modules, onBack
                         </select>
                     ) : (
                         <div style={{ fontWeight: "500" }}>
-                            {/* ✅ UPDATED: Full HoSP Name rendering */}
                             {program.head_lecturer
                                 ? `${program.head_lecturer.title} ${program.head_lecturer.first_name} ${program.head_lecturer.last_name}`
                                 : "-"}

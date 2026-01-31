@@ -1,18 +1,15 @@
 from pydantic import BaseModel, EmailStr
 from typing import List, Optional, Any
 
-
 # --- AUTH ---
 class LoginRequest(BaseModel):
     email: str
     password: str
 
-
 class Token(BaseModel):
     access_token: str
     token_type: str
     role: str
-
 
 # --- LECTURERS ---
 class LecturerBase(BaseModel):
@@ -26,23 +23,18 @@ class LecturerBase(BaseModel):
     location: Optional[str] = None
     teaching_load: Optional[str] = None
 
-
 class LecturerCreate(LecturerBase):
     pass
 
-
 class LecturerResponse(LecturerBase):
     id: int
-
     class Config:
         from_attributes = True
-
 
 # --- STUDY PROGRAMS ---
 class StudyProgramBase(BaseModel):
     name: str
     acronym: str
-    # head_of_program REMOVED
     status: bool = True
     start_date: str
     total_ects: int
@@ -51,19 +43,16 @@ class StudyProgramBase(BaseModel):
     degree_type: Optional[str] = None
     head_of_program_id: Optional[int] = None
 
-
 class StudyProgramCreate(StudyProgramBase):
     pass
 
-
 class StudyProgramResponse(StudyProgramBase):
     id: int
-    # Nested object to show name in Frontend
+    # ✅ CRITICAL: This allows the API to send Title, Name, and Last Name to the frontend
     head_lecturer: Optional[LecturerResponse] = None
 
     class Config:
         from_attributes = True
-
 
 # --- SPECIALIZATIONS ---
 class SpecializationBase(BaseModel):
@@ -74,17 +63,10 @@ class SpecializationBase(BaseModel):
     status: bool = True
     study_program: Optional[str] = None
 
-
-class SpecializationCreate(SpecializationBase):
-    pass
-
-
 class SpecializationResponse(SpecializationBase):
     id: int
-
     class Config:
         from_attributes = True
-
 
 # --- MODULES ---
 class ModuleBase(BaseModel):
@@ -97,17 +79,13 @@ class ModuleBase(BaseModel):
     category: Optional[str] = None
     program_id: Optional[int] = None
 
-
 class ModuleCreate(ModuleBase):
     specialization_ids: Optional[List[int]] = []
 
-
 class ModuleResponse(ModuleBase):
     specializations: List[SpecializationResponse] = []
-
     class Config:
         from_attributes = True
-
 
 # --- GROUPS ---
 class GroupBase(BaseModel):
@@ -118,17 +96,10 @@ class GroupBase(BaseModel):
     program: Optional[str] = None
     parent_group: Optional[str] = None
 
-
-class GroupCreate(GroupBase):
-    pass
-
-
 class GroupResponse(GroupBase):
     id: int
-
     class Config:
         from_attributes = True
-
 
 # --- ROOMS ---
 class RoomBase(BaseModel):
@@ -139,41 +110,29 @@ class RoomBase(BaseModel):
     equipment: Optional[str] = None
     location: Optional[str] = None
 
-
-class RoomCreate(RoomBase):
-    pass
-
-
 class RoomResponse(RoomBase):
     id: int
-
     class Config:
         from_attributes = True
-
 
 # --- AVAILABILITY ---
 class AvailabilityUpdate(BaseModel):
     lecturer_id: int
-    schedule_data: Any  # JSON grid
-
+    schedule_data: Any
 
 class AvailabilityResponse(BaseModel):
     id: int
     lecturer_id: int
     schedule_data: Any
-
     class Config:
         from_attributes = True
-
 
 # --- CONSTRAINTS ---
 class ConstraintTypeResponse(BaseModel):
     id: int
     name: str
-
     class Config:
         from_attributes = True
-
 
 class SchedulerConstraintBase(BaseModel):
     constraint_type_id: int
@@ -185,13 +144,7 @@ class SchedulerConstraintBase(BaseModel):
     is_enabled: bool = True
     notes: Optional[str] = None
 
-
-class SchedulerConstraintCreate(SchedulerConstraintBase):
-    pass
-
-
 class SchedulerConstraintResponse(SchedulerConstraintBase):
     id: int
-
     class Config:
         from_attributes = True
