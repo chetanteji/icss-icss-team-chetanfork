@@ -74,6 +74,7 @@ const styles = {
 const formatDate = (isoDate) => {
   if (!isoDate) return "-";
   const d = new Date(isoDate);
+  if (isNaN(d.getTime())) return isoDate;
   const day = String(d.getDate()).padStart(2, '0');
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const year = d.getFullYear();
@@ -92,7 +93,7 @@ export default function ProgramOverview({ initialData, clearInitialData, current
   const role = currentUserRole?.toLowerCase();
   const isPM = ["admin", "pm"].includes(role);
 
-  // Helper to check if user can manage a specific program
+  // Helper function to determine if the user can manage a specific program
   const canManageProgram = (program) => {
     if (isPM) return true;
     if (role === "hosp") {
