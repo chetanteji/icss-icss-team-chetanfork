@@ -12,27 +12,7 @@ router = APIRouter(prefix="/modules", tags=["modules"])
 @router.get("/", response_model=List[schemas.ModuleResponse])
 def read_modules(db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):
     # NOTE: "view specific" for lecturer/student needs assignment/enrollment tables (not in your DB yet).
-    r = role_of(current_user)
-
-if is_admin_or_pm(current_user):
-    return db.query(models.Module).all()
-
-elif r == "hosp":
-    prog_ids = hosp_program_ids(db, current_user)
-    return (
-        db.query(models.Module)
-        .filter(models.Module.program_id.in_(prog_ids))
-        .all()
-    )
-
-elif r in ["lecturer", "student"]:
-    # temporary read-only access (until assignments exist)
-    return db.query(models.Module).all()
-
-else:
-    raise HTTPException(status_code=403, detail="Not allowed")
-
-
+    return db.query(models.Module).options(joinedload(models.Module.specializations)).all()
 
 @router.post("/", response_model=schemas.ModuleResponse)
 def create_module(p: schemas.ModuleCreate, db: Session = Depends(get_db),
@@ -57,6 +37,7 @@ def create_module(p: schemas.ModuleCreate, db: Session = Depends(get_db),
     db.commit()
     db.refresh(row)
     return row
+
 
 @router.put("/{module_code}", response_model=schemas.ModuleResponse)
 def update_module(module_code: str, p: schemas.ModuleUpdate, db: Session = Depends(get_db),
