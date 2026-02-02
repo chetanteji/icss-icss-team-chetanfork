@@ -4,18 +4,21 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from ..database import get_db
-from .. import models, schemas, auth  # Mantenemos auth importado pero no lo usamos en el GET
+from .. import models, schemas, auth
 from ..permissions import is_admin_or_pm, role_of, group_payload_in_hosp_domain, group_is_in_hosp_domain
 
+# Prefijo estándar
 router = APIRouter(prefix="/groups", tags=["groups"])
 
-# ✅ DESBLOQUEO TOTAL: Sin autenticación. Cualquiera puede ver esto.
+
+# ✅ GET: ABIERTO PARA TODOS (Student, PM, Lecturer...)
+# Al quitar 'Depends(auth.get_current_user)' de la lectura, eliminamos el riesgo de 403.
 @router.get("/", response_model=List[schemas.GroupResponse])
 def read_groups(db: Session = Depends(get_db)):
-    print("DEBUG: Acceso a groups sin auth")
     return db.query(models.Group).all()
 
-# --- Dejamos el resto igual para no romper la app ---
+
+# ✅ POST: Solo Admin/PM/HoSP
 @router.post("/", response_model=schemas.GroupResponse)
 def create_group(p: schemas.GroupCreate, db: Session = Depends(get_db),
                  current_user: models.User = Depends(auth.get_current_user)):
@@ -27,18 +30,22 @@ def create_group(p: schemas.GroupCreate, db: Session = Depends(get_db),
             raise HTTPException(status_code=403, detail="Unauthorized for this program")
     else:
         raise HTTPException(status_code=403, detail="Not allowed")
+
     row = models.Group(**p.model_dump())
     db.add(row)
     db.commit()
     db.refresh(row)
     return row
 
+
+# ✅ PUT: Solo Admin/PM/HoSP
 @router.put("/{id}", response_model=schemas.GroupResponse)
 def update_group(id: int, p: schemas.GroupUpdate, db: Session = Depends(get_db),
                  current_user: models.User = Depends(auth.get_current_user)):
     row = db.query(models.Group).filter(models.Group.id == id).first()
     if not row:
         raise HTTPException(status_code=404, detail="Group not found")
+
     r = role_of(current_user)
     if is_admin_or_pm(current_user):
         pass
@@ -49,18 +56,23 @@ def update_group(id: int, p: schemas.GroupUpdate, db: Session = Depends(get_db),
             raise HTTPException(status_code=403, detail="Cannot move group to another program")
     else:
         raise HTTPException(status_code=403, detail="Not allowed")
+
     data = p.model_dump(exclude_unset=True)
     for k, v in data.items():
         setattr(row, k, v)
+
     db.commit()
     db.refresh(row)
     return row
 
+
+# ✅ DELETE: Solo Admin/PM
 @router.delete("/{id}")
 def delete_group(id: int, db: Session = Depends(get_db),
                  current_user: models.User = Depends(auth.get_current_user)):
     if not is_admin_or_pm(current_user):
         raise HTTPException(status_code=403, detail="Only Admin/PM can delete")
+
     row = db.query(models.Group).filter(models.Group.id == id).first()
     if row:
         db.delete(row)
