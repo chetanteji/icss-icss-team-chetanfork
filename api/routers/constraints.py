@@ -16,31 +16,9 @@ def read_constraint_types(db: Session = Depends(get_db), current_user: models.Us
 
 # ---- scheduler constraints ----
 @router.get("/scheduler-constraints/", response_model=List[schemas.SchedulerConstraintResponse])
-def read_scheduler_constraints(
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.get_current_user)
-):
-    r = role_of(current_user)
-
-    if is_admin_or_pm(current_user):
-        return db.query(models.SchedulerConstraint).all()
-
-    elif r == "hosp":
-        prog_ids = hosp_program_ids(db, current_user)
-        return (
-            db.query(models.SchedulerConstraint)
-            .filter(
-                models.SchedulerConstraint.scope == "program",
-                models.SchedulerConstraint.target_id.in_(prog_ids)
-            )
-            .all()
-        )
-
-    else:
-        # Lecturer / Student
-        raise HTTPException(status_code=403, detail="Not allowed")
-
-
+def read_scheduler_constraints(db: Session = Depends(get_db),
+                               current_user: models.User = Depends(auth.get_current_user)):
+    return db.query(models.SchedulerConstraint).all()
 
 @router.post("/scheduler-constraints/", response_model=schemas.SchedulerConstraintResponse)
 def create_scheduler_constraint(p: schemas.SchedulerConstraintCreate, db: Session = Depends(get_db),
