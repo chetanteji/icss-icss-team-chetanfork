@@ -1,9 +1,9 @@
+
 import React, { useState, useEffect, useMemo } from "react";
 import api from "../api";
 
-// --- STYLES (Preserved and slightly enhanced) ---
+// --- STYLES (Kept from your original for consistency) ---
 const styles = {
-  // ... (Your existing styles remain the same)
   container: { padding: "20px", fontFamily: "'Inter', sans-serif", color: "#333", maxWidth: "1200px", margin: "0 auto" },
   controlsBar: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", gap: "15px", flexWrap: "wrap" },
   searchBar: { padding: "10px 15px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "0.95rem", width: "100%", maxWidth: "350px", background: "white", boxShadow: "0 1px 2px rgba(0,0,0,0.05)", outline: "none" },
@@ -28,7 +28,6 @@ const styles = {
   deleteBtn: { background: "#fee2e2", color: "#ef4444" },
   overlay: { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 },
   modal: { backgroundColor: "#ffffff", padding: "30px", borderRadius: "12px", width: "650px", maxWidth: "90%", maxHeight: "90vh", overflowY: "auto", boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)" },
-  formGroup: { marginBottom: "15px" },
   label: { display: "block", marginBottom: "5px", fontWeight: "600", fontSize: "0.85rem", color: "#64748b" },
   input: { width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "0.95rem", boxSizing: "border-box", marginBottom: "15px" },
   select: { width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "0.95rem", background: "white", marginBottom: "15px" },
@@ -37,7 +36,7 @@ const styles = {
 const CATEGORY_TYPES = ["Core", "Shared", "Elective"];
 
 export default function ModuleOverview({ onNavigate }) {
-  // --- AUTH & ROLES ---
+  // --- AUTH & ROLE EXTRACTION ---
   const userStr = localStorage.getItem("user");
   const user = userStr ? JSON.parse(userStr) : { role: "student" };
 
@@ -47,29 +46,31 @@ export default function ModuleOverview({ onNavigate }) {
   const [query, setQuery] = useState("");
   const [hoverId, setHoverId] = useState(null);
 
-  // Form & Delete States
+  // Management State
   const [formMode, setFormMode] = useState("overview");
   const [editingCode, setEditingCode] = useState(null);
   const [draft, setDraft] = useState({
-    module_code: "", name: "", ects: 5, room_type: "Lecture Classroom", 
-    semester: 1, assessment_type: "Written Exam", category: "Core", 
-    program_id: "", specialization_ids: []
+    module_code: "", name: "", ects: 5, semester: 1, 
+    category: "Core", program_id: "", room_type: "Lecture Classroom"
   });
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [moduleToDelete, setModuleToDelete] = useState(null);
 
-  // --- PERMISSION HELPERS ---
+  // --- PERMISSION LOGIC ---
   const isAdmin = ["admin", "pm"].includes(user.role);
   const isHoSP = user.role === "hosp";
+  
+  // 1. Can create if Admin or HoSP
   const canCreate = isAdmin || isHoSP;
 
-  const checkManagePermission = (m) => {
+  // 2. Can manage specific module?
+  const checkManagePermission = (module) => {
     if (isAdmin) return true;
     if (isHoSP) {
-      // Logic: Does this module belong to a program managed by this HoSP?
-      return user.managed_program_ids?.includes(m.program_id);
+      // HoSP manages only modules where the program_id is in their managed list
+      return user.managed_program_ids?.includes(module.program_id);
     }
-    return false;
+    return false; // Students and Lecturers are Read-Only
   };
 
   useEffect(() => { loadData(); }, []);
@@ -77,19 +78,17 @@ export default function ModuleOverview({ onNavigate }) {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [modData, progData] = await Promise.all([
-        api.getModules(), api.getPrograms()
-      ]);
+      const [modData, progData] = await Promise.all([api.getModules(), api.getPrograms()]);
       
       let finalModules = Array.isArray(modData) ? modData : [];
-      
-      // Front-end Role Filtering (Secondary to Backend)
+
+      // Logic: Specific View Filtering
       if (user.role === "lecturer") {
         finalModules = finalModules.filter(m => m.lecturer_id === user.lecturer_id);
       } else if (user.role === "student") {
-        // Filter modules where student is enrolled (Assuming 'enrolled_module_codes' in user object)
-        if (user.enrolled_module_codes) {
-          finalModules = finalModules.filter(m => user.enrolled_module_codes.includes(m.module_code));
+        // Based on your philosophy: View modules student is enrolled in
+        if (user.enrolled_module_ids) {
+            finalModules = finalModules.filter(m => user.enrolled_module_ids.includes(m.id));
         }
       }
 
@@ -100,129 +99,114 @@ export default function ModuleOverview({ onNavigate }) {
 
   const filteredModules = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return modules.filter(m => 
-      m.name.toLowerCase().includes(q) || 
-      m.module_code.toLowerCase().includes(q)
-    );
+    return modules.filter(m => m.name.toLowerCase().includes(q) || m.module_code.toLowerCase().includes(q));
   }, [modules, query]);
 
-  // --- HANDLERS ---
+  // --- ACTIONS ---
   const save = async () => {
-    if (!draft.module_code || !draft.name) return alert("Code and Name are required");
-    
-    // Ensure HoSP isn't trying to save to a program they don't own
     if (isHoSP && draft.program_id && !user.managed_program_ids?.includes(parseInt(draft.program_id))) {
-        return alert("You can only assign modules to your managed programs.");
+        return alert("Error: You cannot assign modules to programs outside your jurisdiction.");
     }
 
-    const payload = { 
-        ...draft, 
-        ects: parseInt(draft.ects), 
-        semester: parseInt(draft.semester), 
-        program_id: draft.program_id ? parseInt(draft.program_id) : null 
-    };
-
     try {
-      if (formMode === "add") await api.createModule(payload);
-      else await api.updateModule(editingCode, payload);
-      await loadData();
+      if (formMode === "add") await api.createModule(draft);
+      else await api.updateModule(editingCode, draft);
       setFormMode("overview");
-    } catch (e) { alert("Error saving module. Ensure the module code is unique."); }
+      loadData();
+    } catch (e) { alert("Save failed. Check permissions or unique module code."); }
   };
 
   const getCategoryStyle = (cat) => {
-      if (cat === "Core") return styles.catCore;
-      if (cat === "Elective") return styles.catElective;
-      return styles.catShared;
+    if (cat === "Core") return styles.catCore;
+    if (cat === "Elective") return styles.catElective;
+    return styles.catShared;
   };
 
   return (
     <div style={styles.container}>
+      {/* Search and Add Bar */}
       <div style={styles.controlsBar}>
         <input style={styles.searchBar} placeholder="Search modules..." value={query} onChange={(e) => setQuery(e.target.value)} />
         {canCreate && (
-            <button style={{...styles.btn, ...styles.primaryBtn}} onClick={() => { setFormMode("add"); setDraft({ ...draft, module_code: "" }); }}>
+            <button style={{...styles.btn, ...styles.primaryBtn}} onClick={() => { setFormMode("add"); setDraft({module_code:"", name:"", ects:5, semester:1, category:"Core", program_id:""}); }}>
                 + New Module
             </button>
         )}
       </div>
 
+      {/* List Header */}
       <div style={styles.listHeader}>
-        <div>Code</div><div>Module Name</div><div>Program</div>
+        <div>Code</div><div>Name</div><div>Program</div>
         <div style={{textAlign: "center"}}>Sem</div><div style={{textAlign: "center"}}>Cat</div>
         <div style={{textAlign: "center"}}>ECTS</div><div>Assessment</div><div>Room</div>
         <div style={{textAlign: 'right'}}>Action</div>
       </div>
 
+      {/* List Content */}
       <div style={styles.listContainer}>
-        {loading ? (
-            <div style={{textAlign: 'center', padding: '40px'}}>Loading...</div>
-        ) : (
-            filteredModules.map((m) => {
-                const prog = programs.find(p => p.id === m.program_id);
-                const canManage = checkManagePermission(m);
+        {filteredModules.map((m) => {
+            const prog = programs.find(p => p.id === m.program_id);
+            const canManage = checkManagePermission(m);
 
-                return (
-                <div key={m.module_code} style={{ ...styles.listCard, ...(hoverId === m.module_code ? styles.listCardHover : {}) }}
-                    onMouseEnter={() => setHoverId(m.module_code)} onMouseLeave={() => setHoverId(null)}>
+            return (
+                <div key={m.module_code} style={{...styles.listCard, ...(hoverId === m.module_code ? styles.listCardHover : {})}}
+                     onMouseEnter={() => setHoverId(m.module_code)} onMouseLeave={() => setHoverId(null)}>
+                    
                     <div style={styles.codeText}>{m.module_code}</div>
                     <div style={styles.nameText}>{m.name}</div>
-                    <div style={styles.programLink} onClick={() => prog && onNavigate("programs", { programId: prog.id })}>
-                        {prog ? prog.name : "Global"}
-                    </div>
+                    <div style={styles.cellText}>{prog ? prog.name : "Global"}</div>
                     <div style={styles.centeredCell}>{m.semester}</div>
-                    <div style={{textAlign: "center"}}><span style={{...styles.catBadge, ...getCategoryStyle(m.category)}}>{m.category}</span></div>
-                    <div style={{...styles.centeredCell, fontWeight:'bold'}}>{m.ects}</div>
-                    <div style={styles.cellText}>{m.assessment_type || "-"}</div>
+                    <div style={{textAlign: "center"}}>
+                        <span style={{...styles.catBadge, ...getCategoryStyle(m.category)}}>{m.category}</span>
+                    </div>
+                    <div style={styles.centeredCell}>{m.ects}</div>
+                    <div style={styles.cellText}>{m.assessment_type || "N/A"}</div>
                     <div style={styles.cellText}>{m.room_type}</div>
 
                     <div style={styles.actionContainer}>
                         {canManage ? (
                             <>
-                                <button style={{...styles.actionBtn, ...styles.editBtn}} onClick={() => { setEditingCode(m.module_code); setDraft({...m, program_id: m.program_id || ""}); setFormMode("edit"); }}>Edit</button>
+                                <button style={{...styles.actionBtn, ...styles.editBtn}} onClick={() => { setEditingCode(m.module_code); setDraft(m); setFormMode("edit"); }}>Edit</button>
                                 <button style={{...styles.actionBtn, ...styles.deleteBtn}} onClick={() => { setModuleToDelete(m); setShowDeleteModal(true); }}>Del</button>
                             </>
                         ) : (
-                            <span style={{fontSize:'0.65rem', color:'#94a3b8'}}>READ ONLY</span>
+                            <span style={{fontSize:'0.6rem', color:'#cbd5e1', fontWeight:'bold'}}>VIEW ONLY</span>
                         )}
                     </div>
                 </div>
-                );
-            })
-        )}
+            );
+        })}
       </div>
 
-      {/* MODAL (ADD/EDIT) */}
+      {/* ADD/EDIT MODAL */}
       {(formMode === "add" || formMode === "edit") && (
         <div style={styles.overlay}>
             <div style={styles.modal}>
-                <h3>{formMode === "add" ? "Create New Module" : "Edit Module"}</h3>
-                <label style={styles.label}>Module Code</label>
-                <input style={styles.input} disabled={formMode === "edit"} value={draft.module_code} onChange={e => setDraft({...draft, module_code: e.target.value})} />
+                <h3>{formMode === "add" ? "Add Module" : "Edit Module"}</h3>
                 
-                <label style={styles.label}>Module Name</label>
-                <input style={styles.input} value={draft.name} onChange={e => setDraft({...draft, name: e.target.value})} />
-
-                <label style={styles.label}>Owning Program</label>
+                <label style={styles.label}>Program Ownership</label>
                 <select 
                     style={styles.select} 
                     value={draft.program_id} 
                     onChange={e => setDraft({...draft, program_id: e.target.value})}
                 >
-                    <option value="">-- Global / No Program --</option>
+                    <option value="">-- Global --</option>
                     {programs.map(p => {
-                        const isDisabled = isHoSP && !user.managed_program_ids?.includes(p.id);
+                        const restricted = isHoSP && !user.managed_program_ids?.includes(p.id);
                         return (
-                            <option key={p.id} value={p.id} disabled={isDisabled}>
-                                {p.name} {isDisabled ? "(Unauthorized)" : ""}
+                            <option key={p.id} value={p.id} disabled={restricted}>
+                                {p.name} {restricted ? "(Restricted)" : ""}
                             </option>
                         );
                     })}
                 </select>
 
-                <div style={{display:'flex', gap:'10px', marginTop: '20px'}}>
-                    <button style={{...styles.btn, flex: 1}} onClick={() => setFormMode("overview")}>Cancel</button>
-                    <button style={{...styles.btn, ...styles.primaryBtn, flex: 1}} onClick={save}>Save Changes</button>
+                <label style={styles.label}>Name</label>
+                <input style={styles.input} value={draft.name} onChange={e => setDraft({...draft, name: e.target.value})} />
+
+                <div style={{display:'flex', gap:'10px'}}>
+                    <button style={{...styles.btn, flex:1}} onClick={() => setFormMode("overview")}>Cancel</button>
+                    <button style={{...styles.btn, ...styles.primaryBtn, flex:1}} onClick={save}>Save</button>
                 </div>
             </div>
         </div>
