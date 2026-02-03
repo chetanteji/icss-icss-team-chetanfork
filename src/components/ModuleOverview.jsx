@@ -24,28 +24,26 @@ const styles = {
 };
 
 export default function ModuleOverview() {
-  // --- 1. SESSION DATA ---
-  const role = (localStorage.getItem("userRole") || "guest").toLowerCase();
+  // --- 1. DATA PARSING ---
+  const userRole = (localStorage.getItem("userRole") || "guest").toLowerCase();
   
-  // Use useMemo to ensure managed IDs are always strings for stable comparison
-  const managedRaw = localStorage.getItem("managedProgramIds");
   const managedProgramIds = useMemo(() => {
+    const raw = localStorage.getItem("managedProgramIds");
     try {
-      const parsed = managedRaw ? JSON.parse(managedRaw) : [];
+      const parsed = raw ? JSON.parse(raw) : [];
+      // Force all IDs to strings to ensure "1" === 1
       return Array.isArray(parsed) ? parsed.map(id => String(id)) : [];
     } catch (e) { return []; }
-  }, [managedRaw]);
+  }, []);
 
-  // --- 2. PERMISSIONS ---
-  const isAdmin = role === "admin" || role === "pm";
-  const isHoSP = role === "hosp";
-  const canCreate = isAdmin || isHoSP;
+  const isAdmin = userRole === "admin" || userRole === "pm";
+  const isHoSP = userRole === "hosp";
 
   const [modules, setModules] = useState([]);
   const [programs, setPrograms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
-  const [formMode, setFormMode] = useState("overview"); // overview, add, edit
+  const [formMode, setFormMode] = useState("overview");
   const [draft, setDraft] = useState({ 
     module_code: "", name: "", ects: 5, semester: 1, 
     room_type: "Lecture Classroom", assessment_type: "", 
@@ -61,18 +59,16 @@ export default function ModuleOverview() {
       const [modData, progData] = await Promise.all([api.getModules(), api.getPrograms()]);
       setModules(Array.isArray(modData) ? modData : []);
       setPrograms(Array.isArray(progData) ? progData : []);
-    } catch (e) {
-      console.error("Fetch error:", e);
-    } finally {
-      setLoading(false);
-    }
+    } catch (e) { console.error(e); } finally { setLoading(false); }
   };
 
-  // --- 3. PERMISSION LOGIC ---
+  // --- 2. THE PERMISSION ENGINE ---
   const checkManagePermission = (module) => {
     if (isAdmin) return true;
     if (isHoSP) {
-      // Compare the module's program_id (integer) to the HoSP's managed list (strings)
+      // If module has no program_id, it's global and HoSP cannot edit it
+      if (!module.program_id) return false;
+      // Check if module's program is in HoSP's list
       return managedProgramIds.includes(String(module.program_id));
     }
     return false;
@@ -85,9 +81,7 @@ export default function ModuleOverview() {
       else await api.updateModule(draft.module_code, draft);
       setFormMode("overview");
       loadData();
-    } catch (e) {
-      alert("Error: Ensure module code is unique and you have permission.");
-    }
+    } catch (e) { alert("Action Failed. Check DB constraints."); }
   };
 
   const filteredModules = useMemo(() => {
@@ -101,40 +95,36 @@ export default function ModuleOverview() {
 
   return (
     <div style={styles.container}>
-      {/* Control Bar */}
+      {/* 3. PERMISSION DEBUGGER (Only visible for HoSP) */}
+      {isHoSP && (
+        <div style={{background: '#fefce8', border: '1px solid #fef08a', padding: '10px', borderRadius: '8px', marginBottom: '15px', fontSize: '0.8rem'}}>
+          <strong>HoSP Debugger:</strong> Your managed Program IDs are: <code>{JSON.stringify(managedProgramIds)}</code>. 
+          You can only edit modules where "Program ID" matches this list.
+        </div>
+      )}
+
       <div style={styles.controlsBar}>
-        <input 
-          style={styles.searchBar} 
-          placeholder="Search modules by code or name..." 
-          value={query} 
-          onChange={(e) => setQuery(e.target.value)} 
-        />
-        {canCreate && (
+        <input style={styles.searchBar} placeholder="Search modules..." value={query} onChange={(e) => setQuery(e.target.value)} />
+        {(isAdmin || isHoSP) && (
           <button style={{...styles.btn, ...styles.primaryBtn}} onClick={() => {
             setDraft({ module_code: "", name: "", ects: 5, semester: 1, room_type: "Lecture Classroom", category: "Core", program_id: "" });
             setFormMode("add");
-          }}>
-            + Add Module
-          </button>
+          }}> + Add Module </button>
         )}
       </div>
 
-      {/* List Header */}
       <div style={styles.listHeader}>
-        <div>Code</div><div>Name</div><div>Program</div><div>Sem</div><div>ECTS</div><div>Room</div><div style={{textAlign:'right'}}>Actions</div>
+        <div>Code</div><div>Name</div><div>Prog ID</div><div>Sem</div><div>ECTS</div><div>Room</div><div style={{textAlign:'right'}}>Actions</div>
       </div>
 
-      {/* List Content */}
       <div style={styles.listContainer}>
         {filteredModules.map((m) => {
           const hasAccess = checkManagePermission(m);
-          const programName = programs.find(p => String(p.id) === String(m.program_id))?.name || "Global";
-
           return (
             <div key={m.module_code} style={styles.listCard}>
               <div style={styles.codeText}>{m.module_code}</div>
               <div style={styles.nameText}>{m.name}</div>
-              <div style={{fontSize: '0.85rem', color: '#64748b'}}>{programName}</div>
+              <div style={{color: '#64748b'}}>ID: {m.program_id || "None"}</div>
               <div style={{textAlign: 'center'}}>{m.semester}</div>
               <div style={{textAlign: 'center'}}>{m.ects}</div>
               <div style={{fontSize: '0.85rem'}}>{m.room_type}</div>
@@ -146,7 +136,7 @@ export default function ModuleOverview() {
                     <button style={styles.deleteBtn} onClick={() => { setModuleToDelete(m); setShowDeleteModal(true); }}>Delete</button>
                   </>
                 ) : (
-                  <span style={{fontSize:'0.65rem', color:'#cbd5e1', fontWeight:'700', letterSpacing: '0.05em'}}>VIEW ONLY</span>
+                  <span style={{fontSize:'0.65rem', color:'#cbd5e1', fontWeight:'700'}}>VIEW ONLY</span>
                 )}
               </div>
             </div>
@@ -154,73 +144,43 @@ export default function ModuleOverview() {
         })}
       </div>
 
-      {/* ADD/EDIT MODAL */}
+      {/* MODALS (ADD/EDIT/DELETE) */}
       {(formMode === "add" || formMode === "edit") && (
         <div style={styles.overlay}>
           <div style={styles.modal}>
-            <h3 style={{marginTop: 0}}>{formMode === "add" ? "Create New Module" : "Edit Module"}</h3>
-            
+            <h3>{formMode === "add" ? "Create Module" : "Edit Module"}</h3>
             <label style={styles.label}>Module Code (Primary Key)</label>
             <input style={styles.input} disabled={formMode === "edit"} value={draft.module_code} onChange={e => setDraft({...draft, module_code: e.target.value})} />
-            
             <label style={styles.label}>Module Name</label>
             <input style={styles.input} value={draft.name} onChange={e => setDraft({...draft, name: e.target.value})} />
             
-            <div style={{display:'flex', gap:'15px'}}>
-              <div style={{flex: 1}}>
-                <label style={styles.label}>ECTS Credits</label>
-                <input type="number" style={styles.input} value={draft.ects} onChange={e => setDraft({...draft, ects: parseInt(e.target.value)})} />
-              </div>
-              <div style={{flex: 1}}>
-                <label style={styles.label}>Semester</label>
-                <input type="number" style={styles.input} value={draft.semester} onChange={e => setDraft({...draft, semester: parseInt(e.target.value)})} />
-              </div>
-            </div>
-
-            <label style={styles.label}>Program Ownership (FK)</label>
+            <label style={styles.label}>Assign to Program</label>
             <select style={styles.select} value={draft.program_id} onChange={e => setDraft({...draft, program_id: e.target.value})}>
-              <option value="">-- Global / No Program --</option>
+              <option value="">-- No Program --</option>
               {programs.map(p => {
                 const isForbidden = isHoSP && !managedProgramIds.includes(String(p.id));
-                return (
-                  <option key={p.id} value={p.id} disabled={isForbidden}>
-                    {p.name} {isForbidden ? "(Restricted)" : ""}
-                  </option>
-                );
+                return <option key={p.id} value={p.id} disabled={isForbidden}>{p.name} {isForbidden ? "(Restricted)" : ""}</option>
               })}
             </select>
 
-            <label style={styles.label}>Room Requirement</label>
-            <select style={styles.select} value={draft.room_type} onChange={e => setDraft({...draft, room_type: e.target.value})}>
-              <option value="Lecture Classroom">Lecture Classroom</option>
-              <option value="PC Lab">PC Lab</option>
-              <option value="Studio">Studio</option>
-            </select>
-
-            <div style={{display:'flex', gap:'10px', marginTop:'10px'}}>
+            <div style={{display:'flex', gap:'10px'}}>
               <button style={{...styles.btn, flex: 1}} onClick={() => setFormMode("overview")}>Cancel</button>
-              <button style={{...styles.btn, ...styles.primaryBtn, flex: 1}} onClick={handleSave}>Save Module</button>
+              <button style={{...styles.btn, ...styles.primaryBtn, flex: 1}} onClick={handleSave}>Save</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* DELETE CONFIRMATION */}
       {showDeleteModal && (
         <div style={styles.overlay}>
           <div style={{...styles.modal, width:'400px', textAlign:'center'}}>
-            <h3 style={{color:'#ef4444', marginTop: 0}}>Delete Module?</h3>
-            <p>This will permanently remove <b>{moduleToDelete?.module_code}</b>.</p>
-            <div style={{display:'flex', gap:'10px', marginTop:'20px'}}>
-              <button style={{...styles.btn, flex: 1}} onClick={() => setShowDeleteModal(false)}>Cancel</button>
-              <button style={{...styles.btn, ...styles.deleteBtn, flex: 1}} onClick={async () => {
-                try {
-                  await api.deleteModule(moduleToDelete.module_code);
-                  setShowDeleteModal(false);
-                  loadData();
-                } catch (e) { alert("Delete failed."); }
-              }}>Delete Permanently</button>
-            </div>
+            <h3 style={{color:'#ef4444'}}>Delete Module?</h3>
+            <button style={styles.btn} onClick={() => setShowDeleteModal(false)}>Cancel</button>
+            <button style={{...styles.btn, ...styles.deleteBtn, marginLeft:'10px'}} onClick={async () => {
+               await api.deleteModule(moduleToDelete.module_code);
+               setShowDeleteModal(false);
+               loadData();
+            }}>Confirm Delete</button>
           </div>
         </div>
       )}
