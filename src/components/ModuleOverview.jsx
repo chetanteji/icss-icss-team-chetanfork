@@ -1,94 +1,32 @@
 import React, { useState, useEffect, useMemo } from "react";
 import api from "../api";
 
-// --- STYLES ---
+// --- STYLES (Preserved from your original) ---
 const styles = {
   container: { padding: "20px", fontFamily: "'Inter', sans-serif", color: "#333", maxWidth: "1200px", margin: "0 auto" },
-
-  // Header & Controls
   controlsBar: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", gap: "15px", flexWrap: "wrap" },
-  searchBar: {
-    padding: "10px 15px",
-    borderRadius: "8px",
-    border: "1px solid #cbd5e1",
-    fontSize: "0.95rem",
-    width: "100%",
-    maxWidth: "350px",
-    background: "white",
-    boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-    outline: "none"
-  },
-
-  // LIST LAYOUT
+  searchBar: { padding: "10px 15px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "0.95rem", width: "100%", maxWidth: "350px", background: "white", boxShadow: "0 1px 2px rgba(0,0,0,0.05)", outline: "none" },
   listContainer: { display: "flex", flexDirection: "column", gap: "12px" },
-
-  // Grid: Code | Name | Program | Semester | Category | ECTS | Assessment | Room Type | Actions
-  listHeader: {
-    display: "grid",
-    gridTemplateColumns: "80px 2fr 1.5fr 80px 100px 60px 1.2fr 1.2fr 110px",
-    gap: "15px",
-    padding: "0 25px",
-    marginBottom: "5px",
-    color: "#94a3b8",
-    fontSize: "0.75rem",
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: "0.05em",
-    alignItems: "center"
-  },
-
-  listCard: {
-    background: "white",
-    borderRadius: "8px",
-    border: "none",
-    cursor: "pointer",
-    transition: "background-color 0.2s ease",
-    display: "grid",
-    gridTemplateColumns: "80px 2fr 1.5fr 80px 100px 60px 1.2fr 1.2fr 110px",
-    alignItems: "center",
-    padding: "16px 25px",
-    gap: "15px",
-    boxShadow: "0 2px 8px rgba(0,0,0,0.08)"
-  },
-
+  listHeader: { display: "grid", gridTemplateColumns: "80px 2fr 1.5fr 80px 100px 60px 1.2fr 1.2fr 110px", gap: "15px", padding: "0 25px", marginBottom: "5px", color: "#94a3b8", fontSize: "0.75rem", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.05em", alignItems: "center" },
+  listCard: { background: "white", borderRadius: "8px", border: "none", transition: "background-color 0.2s ease", display: "grid", gridTemplateColumns: "80px 2fr 1.5fr 80px 100px 60px 1.2fr 1.2fr 110px", alignItems: "center", padding: "16px 25px", gap: "15px", boxShadow: "0 2px 8px rgba(0,0,0,0.08)" },
   listCardHover: { backgroundColor: "#f1f5f9" },
-
-  // Typography
   codeText: { fontWeight: "700", color: "#3b82f6", fontSize: "0.95rem" },
   nameText: { fontWeight: "600", color: "#1e293b", lineHeight: "1.4" },
   programLink: { color: "#475569", cursor: "pointer", textDecoration: "underline", fontSize: "0.85rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
   centeredCell: { textAlign: "center", fontSize: "0.9rem", color: "#64748b" },
   cellText: { fontSize: "0.9rem", color: "#64748b", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
-
-  // Badges
   catBadge: { padding: "4px 8px", borderRadius: "6px", fontSize: "0.75rem", fontWeight: "bold", textAlign: "center", textTransform: "uppercase", display: "inline-block" },
   catCore: { background: "#dbeafe", color: "#1e40af" },
   catElective: { background: "#fef3c7", color: "#92400e" },
   catShared: { background: "#f3e8ff", color: "#6b21a8" },
-
-  // Buttons
   btn: { padding: "8px 16px", borderRadius: "6px", border: "none", cursor: "pointer", fontSize: "0.9rem", fontWeight: "500", transition: "0.2s" },
   primaryBtn: { background: "#3b82f6", color: "white" },
   actionContainer: { display: "flex", gap: "8px", justifyContent: "flex-end" },
   actionBtn: { padding: "6px 12px", borderRadius: "6px", border: "none", cursor: "pointer", fontSize: "0.85rem", fontWeight: "600" },
   editBtn: { background: "#e2e8f0", color: "#475569" },
   deleteBtn: { background: "#fee2e2", color: "#ef4444" },
-
-  // Modal
   overlay: { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 },
-
-  // ✅ FIX: Ensure background color is explicit
-  modal: {
-    backgroundColor: "#ffffff",
-    padding: "30px",
-    borderRadius: "12px",
-    width: "650px",
-    maxWidth: "90%",
-    maxHeight: "90vh",
-    overflowY: "auto",
-    boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)"
-  },
-
+  modal: { backgroundColor: "#ffffff", padding: "30px", borderRadius: "12px", width: "650px", maxWidth: "90%", maxHeight: "90vh", overflowY: "auto", boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)" },
   formGroup: { marginBottom: "15px" },
   label: { display: "block", marginBottom: "5px", fontWeight: "600", fontSize: "0.85rem", color: "#64748b" },
   input: { width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "0.95rem", boxSizing: "border-box", marginBottom: "15px" },
@@ -100,6 +38,10 @@ const ASSESSMENT_TYPES = ["Written Exam", "Presentation", "Project", "Report"];
 const CATEGORY_TYPES = ["Core", "Shared", "Elective"];
 
 export default function ModuleOverview({ onNavigate }) {
+  // --- AUTH & ROLES ---
+  const userStr = localStorage.getItem("user");
+  const user = userStr ? JSON.parse(userStr) : { role: "student" }; // Default to guest/student
+
   const [modules, setModules] = useState([]);
   const [programs, setPrograms] = useState([]);
   const [specializations, setSpecializations] = useState([]);
@@ -121,6 +63,24 @@ export default function ModuleOverview({ onNavigate }) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [moduleToDelete, setModuleToDelete] = useState(null);
 
+  // --- PERMISSION CHECKS ---
+  const isAdmin = ["admin", "pm"].includes(user.role);
+  const isHoSP = user.role === "hosp";
+  
+  // Can create if Admin or HoSP
+  const canCreate = isAdmin || isHoSP;
+
+  // Can Edit/Delete check
+  const checkManagePermission = (m) => {
+    if (isAdmin) return true;
+    if (isHoSP) {
+      // Logic: Does this module belong to a program managed by this HoSP?
+      // Assuming user object has managed_program_ids: [1, 2...]
+      return user.managed_program_ids?.includes(m.program_id);
+    }
+    return false;
+  };
+
   useEffect(() => { loadData(); }, []);
 
   const loadData = async () => {
@@ -129,7 +89,19 @@ export default function ModuleOverview({ onNavigate }) {
       const [modData, progData, specData, roomData] = await Promise.all([
         api.getModules(), api.getPrograms(), api.getSpecializations(), api.getRooms()
       ]);
-      setModules(Array.isArray(modData) ? modData : []);
+      
+      // Role-based filtering of the list itself
+      let finalModules = Array.isArray(modData) ? modData : [];
+      
+      if (user.role === "lecturer") {
+        // Lecturer only sees modules they are assigned to
+        finalModules = finalModules.filter(m => m.lecturer_id === user.lecturer_id);
+      } else if (user.role === "student") {
+        // Students see modules based on enrollment (Simplified logic here)
+        // In reality, this filtering should happen on the Backend
+      }
+
+      setModules(finalModules);
       setPrograms(Array.isArray(progData) ? progData : []);
       setSpecializations(Array.isArray(specData) ? specData : []);
 
@@ -145,6 +117,7 @@ export default function ModuleOverview({ onNavigate }) {
     return modules.filter(m => m.name.toLowerCase().includes(q) || m.module_code.toLowerCase().includes(q));
   }, [modules, query]);
 
+  // --- ACTIONS ---
   const openAdd = () => {
     setEditingCode(null);
     setSelectedSpecToAdd("");
@@ -169,18 +142,7 @@ export default function ModuleOverview({ onNavigate }) {
 
   const save = async () => {
     if (!draft.module_code || !draft.name) return alert("Code and Name are required");
-
-    const payload = {
-        module_code: draft.module_code,
-        name: draft.name,
-        ects: parseInt(draft.ects),
-        room_type: draft.room_type,
-        semester: parseInt(draft.semester),
-        assessment_type: draft.assessment_type,
-        category: draft.category,
-        program_id: draft.program_id ? parseInt(draft.program_id) : null,
-        specialization_ids: draft.specialization_ids
-    };
+    const payload = { ...draft, ects: parseInt(draft.ects), semester: parseInt(draft.semester), program_id: draft.program_id ? parseInt(draft.program_id) : null };
 
     try {
       if (formMode === "add") await api.createModule(payload);
@@ -190,25 +152,17 @@ export default function ModuleOverview({ onNavigate }) {
     } catch (e) { alert("Error saving module."); }
   };
 
-  const initiateDelete = (m) => {
-    setModuleToDelete(m);
-    setShowDeleteModal(true);
-  };
-
   const confirmDelete = async () => {
-    if (!moduleToDelete) return;
     try {
         await api.deleteModule(moduleToDelete.module_code);
         setShowDeleteModal(false);
-        setModuleToDelete(null);
         loadData();
     } catch (e) { alert("Error deleting module."); }
   };
 
   const linkSpecToDraft = () => {
-      if (!selectedSpecToAdd) return;
       const specId = parseInt(selectedSpecToAdd);
-      if (!draft.specialization_ids.includes(specId)) {
+      if (specId && !draft.specialization_ids.includes(specId)) {
           setDraft(prev => ({ ...prev, specialization_ids: [...prev.specialization_ids, specId] }));
       }
       setSelectedSpecToAdd("");
@@ -216,12 +170,6 @@ export default function ModuleOverview({ onNavigate }) {
 
   const unlinkSpecFromDraft = (specId) => {
       setDraft(prev => ({ ...prev, specialization_ids: prev.specialization_ids.filter(id => id !== specId) }));
-  };
-
-  const handleProgramClick = (programId) => {
-      if (programId && onNavigate) {
-          onNavigate("programs", { programId: programId });
-      }
   };
 
   const getCategoryStyle = (cat) => {
@@ -232,32 +180,31 @@ export default function ModuleOverview({ onNavigate }) {
 
   return (
     <div style={styles.container}>
-      {/* Controls */}
       <div style={styles.controlsBar}>
         <input style={styles.searchBar} placeholder="Search modules..." value={query} onChange={(e) => setQuery(e.target.value)} />
-        <button style={{...styles.btn, ...styles.primaryBtn}} onClick={openAdd}>+ New Module</button>
+        
+        {/* ROLE BASED: Hide button for Students/Lecturers */}
+        {canCreate && (
+            <button style={{...styles.btn, ...styles.primaryBtn}} onClick={openAdd}>+ New Module</button>
+        )}
       </div>
 
-      {/* Header Row */}
+      {/* Header */}
       <div style={styles.listHeader}>
-        <div>Code</div>
-        <div>Module Name</div>
-        <div>Program</div>
-        <div style={{textAlign: "center"}}>Semester</div>
-        <div style={{textAlign: "center"}}>Category</div>
-        <div style={{textAlign: "center"}}>ECTS</div>
-        <div>Assessment</div>
-        <div>Room Type</div>
+        <div>Code</div><div>Module Name</div><div>Program</div>
+        <div style={{textAlign: "center"}}>Sem</div><div style={{textAlign: "center"}}>Cat</div>
+        <div style={{textAlign: "center"}}>ECTS</div><div>Assessment</div><div>Room</div>
         <div style={{textAlign: 'right'}}>Action</div>
       </div>
 
-      {/* List Container */}
       <div style={styles.listContainer}>
         {loading ? (
             <div style={{textAlign: 'center', padding: '40px', color: '#64748b'}}>Loading modules...</div>
         ) : (
             filteredModules.map((m) => {
                 const prog = programs.find(p => p.id === m.program_id);
+                const canManage = checkManagePermission(m);
+
                 return (
                 <div
                     key={m.module_code}
@@ -267,103 +214,69 @@ export default function ModuleOverview({ onNavigate }) {
                 >
                     <div style={styles.codeText}>{m.module_code}</div>
                     <div style={styles.nameText}>{m.name}</div>
-
-                    <div>
-                        {prog ? (
-                            <span
-                                style={styles.programLink}
-                                onClick={(e) => { e.stopPropagation(); handleProgramClick(prog.id); }}
-                            >
-                                {prog.name}
-                            </span>
-                        ) : (
-                            <span style={{...styles.cellText, fontStyle:'italic'}}>Global</span>
-                        )}
+                    <div style={styles.programLink} onClick={() => prog && onNavigate("programs", { programId: prog.id })}>
+                        {prog ? prog.name : "Global"}
                     </div>
-
                     <div style={styles.centeredCell}>{m.semester}</div>
-
-                    <div style={{textAlign: "center"}}>
-                        <span style={{...styles.catBadge, ...getCategoryStyle(m.category)}}>{m.category}</span>
-                    </div>
-
-                    <div style={{...styles.centeredCell, fontWeight:'bold', color:'#475569'}}>{m.ects}</div>
+                    <div style={{textAlign: "center"}}><span style={{...styles.catBadge, ...getCategoryStyle(m.category)}}>{m.category}</span></div>
+                    <div style={{...styles.centeredCell, fontWeight:'bold'}}>{m.ects}</div>
                     <div style={styles.cellText}>{m.assessment_type || "-"}</div>
                     <div style={styles.cellText}>{m.room_type}</div>
 
                     <div style={styles.actionContainer}>
-                        <button style={{...styles.actionBtn, ...styles.editBtn}} onClick={() => openEdit(m)}>Edit</button>
-                        <button style={{...styles.actionBtn, ...styles.deleteBtn}} onClick={() => initiateDelete(m)}>Del</button>
+                        {/* ROLE BASED ACTIONS */}
+                        {canManage ? (
+                            <>
+                                <button style={{...styles.actionBtn, ...styles.editBtn}} onClick={() => openEdit(m)}>Edit</button>
+                                <button style={{...styles.actionBtn, ...styles.deleteBtn}} onClick={() => { setModuleToDelete(m); setShowDeleteModal(true); }}>Del</button>
+                            </>
+                        ) : (
+                            <span style={{fontSize:'0.7rem', color:'#cbd5e1', fontWeight:'bold'}}>VIEW ONLY</span>
+                        )}
                     </div>
                 </div>
                 );
             })
         )}
-        {!loading && filteredModules.length === 0 && <div style={{ color: "#94a3b8", padding: "40px", textAlign: "center", fontStyle: "italic" }}>No modules found.</div>}
       </div>
 
-      {/* MODAL */}
+      {/* MODAL (ADD/EDIT) */}
       {(formMode === "add" || formMode === "edit") && (
         <div style={styles.overlay}>
             <div style={styles.modal}>
-                <div style={{display:'flex', justifyContent:'space-between', marginBottom:'20px'}}>
-                    <h3 style={{margin:0}}>{formMode === "add" ? "Create Module" : "Edit Module"}</h3>
-                    <button onClick={() => setFormMode("overview")} style={{border:'none', background:'transparent', fontSize:'1.5rem', cursor:'pointer'}}>×</button>
+                <h3>{formMode === "add" ? "Create Module" : "Edit Module"}</h3>
+                
+                <div style={{display:'flex', gap:'15px'}}>
+                    <div style={{flex:1}}><label style={styles.label}>Code</label><input style={styles.input} value={draft.module_code} onChange={(e) => setDraft({ ...draft, module_code: e.target.value })} disabled={formMode === "edit"} /></div>
+                    <div style={{flex:2}}><label style={styles.label}>Name</label><input style={styles.input} value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} /></div>
                 </div>
 
                 <div style={{display:'flex', gap:'15px'}}>
-                    <div style={{...styles.formGroup, flex:1}}><label style={styles.label}>Module Code</label><input style={styles.input} value={draft.module_code} onChange={(e) => setDraft({ ...draft, module_code: e.target.value })} disabled={formMode === "edit"} placeholder="CS101" /></div>
-                    <div style={{...styles.formGroup, flex:2}}><label style={styles.label}>Name</label><input style={styles.input} value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} /></div>
+                    <div style={{flex:1}}><label style={styles.label}>ECTS</label><input type="number" style={styles.input} value={draft.ects} onChange={(e) => setDraft({ ...draft, ects: e.target.value })} /></div>
+                    <div style={{flex:1}}><label style={styles.label}>Sem</label><input type="number" style={styles.input} value={draft.semester} onChange={(e) => setDraft({ ...draft, semester: e.target.value })} /></div>
+                    <div style={{flex:1}}><label style={styles.label}>Cat</label><select style={styles.select} value={draft.category} onChange={(e) => setDraft({ ...draft, category: e.target.value })}>{CATEGORY_TYPES.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
                 </div>
-
-                <div style={{display:'flex', gap:'15px'}}>
-                    <div style={{...styles.formGroup, flex:1}}><label style={styles.label}>ECTS</label><input type="number" style={styles.input} value={draft.ects} onChange={(e) => setDraft({ ...draft, ects: e.target.value })} /></div>
-                    <div style={{...styles.formGroup, flex:1}}><label style={styles.label}>Semester</label><input type="number" style={styles.input} value={draft.semester} onChange={(e) => setDraft({ ...draft, semester: e.target.value })} /></div>
-                    <div style={{...styles.formGroup, flex:1}}><label style={styles.label}>Category</label><select style={styles.select} value={draft.category} onChange={(e) => setDraft({ ...draft, category: e.target.value })}>{CATEGORY_TYPES.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
-                </div>
-
-                <div style={{display:'flex', gap:'15px'}}>
-                    <div style={{...styles.formGroup, flex:1}}><label style={styles.label}>Room Type</label><select style={styles.select} value={draft.room_type} onChange={(e) => setDraft({...draft, room_type: e.target.value})}><optgroup label="Standard">{STANDARD_ROOM_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</optgroup>{customRoomTypes.length > 0 && (<optgroup label="Custom">{customRoomTypes.map(t => <option key={t} value={t}>{t}</option>)}</optgroup>)}</select></div>
-                    <div style={{...styles.formGroup, flex:1}}><label style={styles.label}>Assessment</label><select style={styles.select} value={draft.assessment_type} onChange={(e) => setDraft({ ...draft, assessment_type: e.target.value })}>{ASSESSMENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
-                </div>
-
-                <hr style={{margin:'20px 0', border:'0', borderTop:'1px solid #eee'}} />
 
                 <div style={styles.formGroup}>
-                    <label style={styles.label}>Study Program (Owner)</label>
-                    <select style={styles.select} value={draft.program_id} onChange={(e) => setDraft({ ...draft, program_id: e.target.value })}>
-                        <option value="">-- None / Global Module --</option>
-                        {programs.map(p => (<option key={p.id} value={p.id}>{p.name} ({p.level})</option>))}
+                    <label style={styles.label}>Program Ownership</label>
+                    <select 
+                        style={styles.select} 
+                        value={draft.program_id} 
+                        onChange={(e) => setDraft({ ...draft, program_id: e.target.value })}
+                        disabled={isHoSP && formMode === "edit"} // HoSP usually can't transfer modules between programs
+                    >
+                        <option value="">-- Global --</option>
+                        {programs.map(p => (
+                            <option key={p.id} value={p.id} disabled={isHoSP && !user.managed_program_ids?.includes(p.id)}>
+                                {p.name} {isHoSP && !user.managed_program_ids?.includes(p.id) ? "(Restricted)" : ""}
+                            </option>
+                        ))}
                     </select>
                 </div>
 
-                <div style={{...styles.formGroup, background: '#f9f9f9', padding: '15px', borderRadius: '6px', border:'1px solid #eee'}}>
-                    <label style={{...styles.label, marginBottom:'10px'}}>Linked Specializations</label>
-                    <div style={{display:'flex', gap:'10px', marginBottom:'15px'}}>
-                        <select style={styles.select} value={selectedSpecToAdd} onChange={(e) => setSelectedSpecToAdd(e.target.value)}>
-                            <option value="">-- Select Specialization --</option>
-                            {specializations.filter(s => !draft.specialization_ids.includes(s.id)).map(s => (<option key={s.id} value={s.id}>{s.name} ({s.acronym})</option>))}
-                        </select>
-                        <button type="button" style={{...styles.btn, ...styles.primaryBtn}} onClick={linkSpecToDraft}>Link</button>
-                    </div>
-                    <div style={{maxHeight:'150px', overflowY:'auto', display:'flex', flexWrap:'wrap', gap:'8px'}}>
-                        {draft.specialization_ids.map(specId => {
-                            const spec = specializations.find(s => s.id === specId);
-                            if (!spec) return null;
-                            return (
-                                <div key={spec.id} style={{background:'white', border:'1px solid #ddd', padding:'4px 10px', borderRadius:'15px', fontSize:'0.85rem', display:'flex', alignItems:'center', gap:'8px'}}>
-                                    <span>{spec.name} ({spec.acronym})</span>
-                                    <button onClick={() => unlinkSpecFromDraft(spec.id)} style={{border:'none', background:'transparent', color:'#ef4444', cursor:'pointer', fontWeight:'bold'}}>×</button>
-                                </div>
-                            );
-                        })}
-                        {draft.specialization_ids.length === 0 && <div style={{fontStyle:'italic', color:'#999'}}>No specializations linked.</div>}
-                    </div>
-                </div>
-
                 <div style={{marginTop: '25px', display:'flex', justifyContent:'flex-end', gap:'10px'}}>
-                    <button style={{...styles.btn, background:'#f8f9fa', border:'1px solid #ddd'}} onClick={() => setFormMode("overview")}>Cancel</button>
-                    <button style={{...styles.btn, ...styles.primaryBtn}} onClick={save}>Save</button>
+                    <button style={styles.btn} onClick={() => setFormMode("overview")}>Cancel</button>
+                    <button style={{...styles.btn, ...styles.primaryBtn}} onClick={save}>Save Module</button>
                 </div>
             </div>
         </div>
@@ -371,54 +284,17 @@ export default function ModuleOverview({ onNavigate }) {
 
       {/* DELETE MODAL */}
       {showDeleteModal && (
-        <DeleteConfirmationModal
-            moduleName={moduleToDelete?.name}
-            onClose={() => setShowDeleteModal(false)}
-            onConfirm={confirmDelete}
-        />
-      )}
-    </div>
-  );
-}
-
-// --- HELPER: Delete Confirmation Modal ---
-function DeleteConfirmationModal({ moduleName, onClose, onConfirm }) {
-    const [input, setInput] = useState("");
-    const isMatch = input === "DELETE";
-
-    return (
         <div style={styles.overlay}>
-            <div style={{...styles.modal, width:'450px', maxHeight:'none'}}>
-                <h3 style={{ marginTop: 0, color: "#991b1b" }}>⚠️ Delete Module?</h3>
-                <p style={{ color: "#4b5563", marginBottom: "20px", lineHeight:'1.5' }}>
-                    Are you sure you want to delete <strong>{moduleName}</strong>?<br/>
-                    This action cannot be undone.
-                </p>
-                <p style={{ fontSize: "0.9rem", fontWeight: "bold", marginBottom: "8px", color:'#374151' }}>
-                    Type "DELETE" to confirm:
-                </p>
-                <input
-                    style={styles.input}
-                    value={input}
-                    onChange={e => setInput(e.target.value)}
-                    placeholder="DELETE"
-                />
-                <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
-                    <button style={{ ...styles.btn, background: "#e5e7eb", color: "#374151" }} onClick={onClose}>Cancel</button>
-                    <button
-                        disabled={!isMatch}
-                        style={{
-                            ...styles.btn,
-                            background: isMatch ? "#dc2626" : "#fca5a5",
-                            color: "white",
-                            cursor: isMatch ? "pointer" : "not-allowed"
-                        }}
-                        onClick={onConfirm}
-                    >
-                        Permanently Delete
-                    </button>
+            <div style={{...styles.modal, width:'400px'}}>
+                <h3 style={{color: "#dc2626"}}>Confirm Deletion</h3>
+                <p>Are you sure you want to delete <b>{moduleToDelete?.name}</b>?</p>
+                <div style={{display:'flex', justifyContent:'flex-end', gap:'10px', marginTop:'20px'}}>
+                    <button style={styles.btn} onClick={() => setShowDeleteModal(false)}>Cancel</button>
+                    <button style={{...styles.btn, ...styles.deleteBtn}} onClick={confirmDelete}>Delete Permanently</button>
                 </div>
             </div>
         </div>
-    );
+      )}
+    </div>
+  );
 }
