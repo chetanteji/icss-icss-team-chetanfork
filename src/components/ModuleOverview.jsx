@@ -126,7 +126,7 @@ export default function ModuleOverview({ onNavigate }) {
     return (raw || "").replace(/"/g, "").trim().toLowerCase();
   });
 
-  // ✅ 2. ESCUCHAR EL CAMBIO DE ROL DEL LAYOUT
+  // ✅ 2. ESCUCHAR EL CAMBIO DE ROL
   useEffect(() => {
     const handleRoleUpdate = () => {
       const raw = localStorage.getItem("userRole");
@@ -143,8 +143,14 @@ export default function ModuleOverview({ onNavigate }) {
     };
   }, []);
 
-  // ✅ 3. DEFINIR RESTRICCION
-  const isRestricted = ["student", "lecturer"].includes(currentRole);
+  // ✅ 3. LÓGICA DE PERMISOS DIVIDIDA (AQUÍ ESTÁ LA MAGIA)
+
+  // ¿Quién puede CREAR? (Admin, PM y HoSP) -> Solo Student y Lecturer están bloqueados
+  const canCreate = !["student", "lecturer"].includes(currentRole);
+
+  // ¿Quién puede EDITAR/BORRAR? (Solo Admin y PM) -> HoSP, Student y Lecturer bloqueados
+  const canModify = !["student", "lecturer", "hosp"].includes(currentRole);
+
 
   useEffect(() => { loadData(); }, []);
 
@@ -153,7 +159,6 @@ export default function ModuleOverview({ onNavigate }) {
     try {
       const [modData, progData, specData, roomData] = await Promise.all([
         api.getModules(),
-        // try-catch para programas por si acaso
         api.getPrograms().catch(() => []),
         api.getSpecializations(),
         api.getRooms()
@@ -265,8 +270,8 @@ export default function ModuleOverview({ onNavigate }) {
       <div style={styles.controlsBar}>
         <input style={styles.searchBar} placeholder="Search modules..." value={query} onChange={(e) => setQuery(e.target.value)} />
 
-        {/* ✅ OCULTAR BOTÓN NEW MODULE */}
-        {!isRestricted && (
+        {/* ✅ BOTÓN NUEVO: Visible para Admin, PM y HoSP (usa canCreate) */}
+        {canCreate && (
             <button style={{...styles.btn, ...styles.primaryBtn}} onClick={openAdd}>+ New Module</button>
         )}
       </div>
@@ -281,8 +286,8 @@ export default function ModuleOverview({ onNavigate }) {
         <div style={{textAlign: "center"}}>ECTS</div>
         <div>Assessment</div>
         <div>Room Type</div>
-        {/* ✅ OCULTAR HEADER ACCIONES */}
-        {!isRestricted && <div style={{textAlign: 'right'}}>Action</div>}
+        {/* ✅ COLUMNA ACCIONES: Solo visible para Admin y PM (usa canModify) */}
+        {canModify && <div style={{textAlign: 'right'}}>Action</div>}
       </div>
 
       {/* List Container */}
@@ -325,8 +330,8 @@ export default function ModuleOverview({ onNavigate }) {
                     <div style={styles.cellText}>{m.assessment_type || "-"}</div>
                     <div style={styles.cellText}>{m.room_type}</div>
 
-                    {/* ✅ OCULTAR BOTONES DE ACCION */}
-                    {!isRestricted && (
+                    {/* ✅ BOTONES ACCION: Solo visible para Admin y PM (usa canModify) */}
+                    {canModify && (
                         <div style={styles.actionContainer}>
                             <button style={{...styles.actionBtn, ...styles.editBtn}} onClick={() => openEdit(m)}>Edit</button>
                             <button style={{...styles.actionBtn, ...styles.deleteBtn}} onClick={() => initiateDelete(m)}>Del</button>
@@ -339,7 +344,7 @@ export default function ModuleOverview({ onNavigate }) {
         {!loading && filteredModules.length === 0 && <div style={{ color: "#94a3b8", padding: "40px", textAlign: "center", fontStyle: "italic" }}>No modules found.</div>}
       </div>
 
-      {/* MODAL (Omitido por brevedad, es igual al tuyo) */}
+      {/* MODAL (Igual que antes) */}
       {(formMode === "add" || formMode === "edit") && (
         <div style={styles.overlay}>
             <div style={styles.modal}>
