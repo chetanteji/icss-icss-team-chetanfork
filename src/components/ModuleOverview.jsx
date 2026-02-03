@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect, useMemo } from "react";
 import api from "../api";
 
-// --- STYLES (Kept from your original for consistency) ---
+// --- STYLES ---
 const styles = {
   container: { padding: "20px", fontFamily: "'Inter', sans-serif", color: "#333", maxWidth: "1200px", margin: "0 auto" },
   controlsBar: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", gap: "15px", flexWrap: "wrap" },
@@ -36,7 +35,6 @@ const styles = {
 const CATEGORY_TYPES = ["Core", "Shared", "Elective"];
 
 export default function ModuleOverview({ onNavigate }) {
-  // --- AUTH & ROLE EXTRACTION ---
   const userStr = localStorage.getItem("user");
   const user = userStr ? JSON.parse(userStr) : { role: "student" };
 
@@ -46,7 +44,7 @@ export default function ModuleOverview({ onNavigate }) {
   const [query, setQuery] = useState("");
   const [hoverId, setHoverId] = useState(null);
 
-  // Management State
+  // Form & Delete States
   const [formMode, setFormMode] = useState("overview");
   const [editingCode, setEditingCode] = useState(null);
   const [draft, setDraft] = useState({
@@ -57,20 +55,18 @@ export default function ModuleOverview({ onNavigate }) {
   const [moduleToDelete, setModuleToDelete] = useState(null);
 
   // --- PERMISSION LOGIC ---
-  const isAdmin = ["admin", "pm"].includes(user.role);
-  const isHoSP = user.role === "hosp";
-  
-  // 1. Can create if Admin or HoSP
+  const isAdmin = ["admin", "pm"].includes(user.role.toLowerCase());
+  const isHoSP = user.role.toLowerCase() === "hosp";
   const canCreate = isAdmin || isHoSP;
 
-  // 2. Can manage specific module?
-  const checkManagePermission = (module) => {
+  const checkManagePermission = (m) => {
     if (isAdmin) return true;
     if (isHoSP) {
-      // HoSP manages only modules where the program_id is in their managed list
-      return user.managed_program_ids?.includes(module.program_id);
+      // Use Number() to prevent string vs number comparison errors
+      const managedIds = (user.managed_program_ids || []).map(id => Number(id));
+      return managedIds.includes(Number(m.program_id));
     }
-    return false; // Students and Lecturers are Read-Only
+    return false;
   };
 
   useEffect(() => { loadData(); }, []);
@@ -79,33 +75,25 @@ export default function ModuleOverview({ onNavigate }) {
     setLoading(true);
     try {
       const [modData, progData] = await Promise.all([api.getModules(), api.getPrograms()]);
-      
-      let finalModules = Array.isArray(modData) ? modData : [];
-
-      // Logic: Specific View Filtering
-      if (user.role === "lecturer") {
-        finalModules = finalModules.filter(m => m.lecturer_id === user.lecturer_id);
-      } else if (user.role === "student") {
-        // Based on your philosophy: View modules student is enrolled in
-        if (user.enrolled_module_ids) {
-            finalModules = finalModules.filter(m => user.enrolled_module_ids.includes(m.id));
-        }
-      }
-
-      setModules(finalModules);
+      setModules(Array.isArray(modData) ? modData : []);
       setPrograms(Array.isArray(progData) ? progData : []);
-    } catch (e) { console.error(e); } finally { setLoading(false); }
+    } catch (e) { console.error("Load error:", e); } 
+    finally { setLoading(false); }
   };
 
   const filteredModules = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return modules.filter(m => m.name.toLowerCase().includes(q) || m.module_code.toLowerCase().includes(q));
+    return modules.filter(m => 
+      m.name.toLowerCase().includes(q) || m.module_code.toLowerCase().includes(q)
+    );
   }, [modules, query]);
 
-  // --- ACTIONS ---
   const save = async () => {
-    if (isHoSP && draft.program_id && !user.managed_program_ids?.includes(parseInt(draft.program_id))) {
-        return alert("Error: You cannot assign modules to programs outside your jurisdiction.");
+    if (!draft.module_code || !draft.name) return alert("Code and Name are required");
+    
+    // Safety check for HoSP
+    if (isHoSP && draft.program_id && !user.managed_program_ids?.map(Number).includes(Number(draft.program_id))) {
+        return alert("Unauthorized: You don't manage this program.");
     }
 
     try {
@@ -113,7 +101,15 @@ export default function ModuleOverview({ onNavigate }) {
       else await api.updateModule(editingCode, draft);
       setFormMode("overview");
       loadData();
-    } catch (e) { alert("Save failed. Check permissions or unique module code."); }
+    } catch (e) { alert("Save failed. Ensure code is unique."); }
+  };
+
+  const confirmDelete = async () => {
+    try {
+      await api.deleteModule(moduleToDelete.module_code);
+      setShowDeleteModal(false);
+      loadData();
+    } catch (e) { alert("Delete failed."); }
   };
 
   const getCategoryStyle = (cat) => {
@@ -124,17 +120,20 @@ export default function ModuleOverview({ onNavigate }) {
 
   return (
     <div style={styles.container}>
-      {/* Search and Add Bar */}
+      {/* Search and Global Action */}
       <div style={styles.controlsBar}>
         <input style={styles.searchBar} placeholder="Search modules..." value={query} onChange={(e) => setQuery(e.target.value)} />
         {canCreate && (
-            <button style={{...styles.btn, ...styles.primaryBtn}} onClick={() => { setFormMode("add"); setDraft({module_code:"", name:"", ects:5, semester:1, category:"Core", program_id:""}); }}>
+            <button style={{...styles.btn, ...styles.primaryBtn}} onClick={() => { 
+                setDraft({module_code:"", name:"", ects:5, semester:1, category:"Core", program_id:""});
+                setFormMode("add"); 
+            }}>
                 + New Module
             </button>
         )}
       </div>
 
-      {/* List Header */}
+      {/* Header */}
       <div style={styles.listHeader}>
         <div>Code</div><div>Name</div><div>Program</div>
         <div style={{textAlign: "center"}}>Sem</div><div style={{textAlign: "center"}}>Cat</div>
@@ -142,10 +141,10 @@ export default function ModuleOverview({ onNavigate }) {
         <div style={{textAlign: 'right'}}>Action</div>
       </div>
 
-      {/* List Content */}
+      {/* List */}
       <div style={styles.listContainer}>
         {filteredModules.map((m) => {
-            const prog = programs.find(p => p.id === m.program_id);
+            const prog = programs.find(p => Number(p.id) === Number(m.program_id));
             const canManage = checkManagePermission(m);
 
             return (
@@ -160,7 +159,7 @@ export default function ModuleOverview({ onNavigate }) {
                         <span style={{...styles.catBadge, ...getCategoryStyle(m.category)}}>{m.category}</span>
                     </div>
                     <div style={styles.centeredCell}>{m.ects}</div>
-                    <div style={styles.cellText}>{m.assessment_type || "N/A"}</div>
+                    <div style={styles.cellText}>{m.assessment_type || "-"}</div>
                     <div style={styles.cellText}>{m.room_type}</div>
 
                     <div style={styles.actionContainer}>
@@ -170,7 +169,7 @@ export default function ModuleOverview({ onNavigate }) {
                                 <button style={{...styles.actionBtn, ...styles.deleteBtn}} onClick={() => { setModuleToDelete(m); setShowDeleteModal(true); }}>Del</button>
                             </>
                         ) : (
-                            <span style={{fontSize:'0.6rem', color:'#cbd5e1', fontWeight:'bold'}}>VIEW ONLY</span>
+                            <span style={{fontSize:'0.65rem', color:'#cbd5e1', fontWeight:'700'}}>READ ONLY</span>
                         )}
                     </div>
                 </div>
@@ -185,14 +184,10 @@ export default function ModuleOverview({ onNavigate }) {
                 <h3>{formMode === "add" ? "Add Module" : "Edit Module"}</h3>
                 
                 <label style={styles.label}>Program Ownership</label>
-                <select 
-                    style={styles.select} 
-                    value={draft.program_id} 
-                    onChange={e => setDraft({...draft, program_id: e.target.value})}
-                >
+                <select style={styles.select} value={draft.program_id} onChange={e => setDraft({...draft, program_id: e.target.value})}>
                     <option value="">-- Global --</option>
                     {programs.map(p => {
-                        const restricted = isHoSP && !user.managed_program_ids?.includes(p.id);
+                        const restricted = isHoSP && !user.managed_program_ids?.map(Number).includes(Number(p.id));
                         return (
                             <option key={p.id} value={p.id} disabled={restricted}>
                                 {p.name} {restricted ? "(Restricted)" : ""}
@@ -201,12 +196,29 @@ export default function ModuleOverview({ onNavigate }) {
                     })}
                 </select>
 
-                <label style={styles.label}>Name</label>
+                <label style={styles.label}>Module Code</label>
+                <input style={styles.input} disabled={formMode === "edit"} value={draft.module_code} onChange={e => setDraft({...draft, module_code: e.target.value})} />
+
+                <label style={styles.label}>Module Name</label>
                 <input style={styles.input} value={draft.name} onChange={e => setDraft({...draft, name: e.target.value})} />
 
                 <div style={{display:'flex', gap:'10px'}}>
                     <button style={{...styles.btn, flex:1}} onClick={() => setFormMode("overview")}>Cancel</button>
                     <button style={{...styles.btn, ...styles.primaryBtn, flex:1}} onClick={save}>Save</button>
+                </div>
+            </div>
+        </div>
+      )}
+
+      {/* DELETE MODAL (CRITICAL: You were missing this!) */}
+      {showDeleteModal && (
+        <div style={styles.overlay}>
+            <div style={{...styles.modal, width:'400px'}}>
+                <h3 style={{color:'#ef4444'}}>Confirm Delete</h3>
+                <p>Are you sure you want to delete <b>{moduleToDelete?.name}</b>?</p>
+                <div style={{display:'flex', justifyContent:'flex-end', gap:'10px', marginTop:'20px'}}>
+                    <button style={styles.btn} onClick={() => setShowDeleteModal(false)}>Cancel</button>
+                    <button style={{...styles.btn, ...styles.deleteBtn}} onClick={confirmDelete}>Delete Permanently</button>
                 </div>
             </div>
         </div>
