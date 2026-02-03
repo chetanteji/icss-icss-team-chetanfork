@@ -115,6 +115,32 @@ export default function LecturerOverview() {
     teachingLoad: "",
   });
 
+  // ✅ 1. ESTADO PARA EL ROL
+  const [currentRole, setCurrentRole] = useState(() => {
+    const raw = localStorage.getItem("userRole");
+    return (raw || "").replace(/"/g, "").trim().toLowerCase();
+  });
+
+  // ✅ 2. ESCUCHAR EL CAMBIO DE ROL INSTANTÁNEO
+  useEffect(() => {
+    const handleRoleUpdate = () => {
+      const raw = localStorage.getItem("userRole");
+      const cleanRole = (raw || "").replace(/"/g, "").trim().toLowerCase();
+      setCurrentRole(cleanRole);
+    };
+
+    window.addEventListener("role-changed", handleRoleUpdate);
+    window.addEventListener("storage", handleRoleUpdate);
+
+    return () => {
+      window.removeEventListener("role-changed", handleRoleUpdate);
+      window.removeEventListener("storage", handleRoleUpdate);
+    };
+  }, []);
+
+  // ✅ 3. LÓGICA DE RESTRICCIÓN (SOLO ESTUDIANTES BLOQUEADOS)
+  const isRestricted = currentRole === "student";
+
   async function loadLecturers() {
     setLoading(true);
     try {
@@ -271,9 +297,12 @@ export default function LecturerOverview() {
     <div style={styles.container}>
       <div style={styles.header}>
         <h2 style={styles.title}>Lecturer Overview</h2>
-        <button style={{ ...styles.btn, ...styles.primaryBtn }} onClick={openAdd}>
-          + New Lecturer
-        </button>
+        {/* ✅ OCULTAR BOTÓN SOLO PARA ESTUDIANTES */}
+        {!isRestricted && (
+            <button style={{ ...styles.btn, ...styles.primaryBtn }} onClick={openAdd}>
+            + New Lecturer
+            </button>
+        )}
       </div>
 
       <input
@@ -293,7 +322,8 @@ export default function LecturerOverview() {
               <th style={styles.th}>Location</th>
               <th style={styles.th}>MDH Email</th>
               <th style={styles.th}>Teaching Load</th>
-              <th style={{ ...styles.th, textAlign: 'right' }}>Actions</th>
+              {/* ✅ OCULTAR COLUMNA ACCIONES SOLO PARA ESTUDIANTES */}
+              {!isRestricted && <th style={{ ...styles.th, textAlign: 'right' }}>Actions</th>}
             </tr>
           </thead>
           <tbody>
@@ -305,14 +335,17 @@ export default function LecturerOverview() {
                 <td style={styles.td}>{l.location || "-"}</td>
                 <td style={styles.td}>{l.mdhEmail || "-"}</td>
                 <td style={styles.td}>{l.teachingLoad || "-"}</td>
-                <td style={{ ...styles.td, textAlign: 'right', whiteSpace: 'nowrap' }}>
-                  <button style={{ ...styles.btn, ...styles.editBtn }} onClick={() => openEdit(l)}>
-                    Edit
-                  </button>
-                  <button style={{ ...styles.btn, ...styles.deleteBtn }} onClick={() => remove(l.id)}>
-                    Delete
-                  </button>
-                </td>
+                {/* ✅ OCULTAR BOTONES SOLO PARA ESTUDIANTES */}
+                {!isRestricted && (
+                    <td style={{ ...styles.td, textAlign: 'right', whiteSpace: 'nowrap' }}>
+                    <button style={{ ...styles.btn, ...styles.editBtn }} onClick={() => openEdit(l)}>
+                        Edit
+                    </button>
+                    <button style={{ ...styles.btn, ...styles.deleteBtn }} onClick={() => remove(l.id)}>
+                        Delete
+                    </button>
+                    </td>
+                )}
               </tr>
             ))}
           </tbody>
@@ -424,7 +457,7 @@ export default function LecturerOverview() {
 
             <div style={{ display: 'flex', gap: '15px', marginBottom: '15px' }}>
                 <div style={{ flex: 1 }}>
-                    {/*  MDH Email is Required */}
+                    {/* MDH Email is Required */}
                     <label style={styles.label}>MDH Email</label>
                     <input
                       style={styles.input}
