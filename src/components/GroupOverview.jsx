@@ -45,7 +45,7 @@ const styles = {
     textAlign: "left",
     padding: "10px 15px",
     fontWeight: "600",
-    color: "#ffffff",
+    color: "#444",
   },
   tr: {
     borderBottom: "1px solid #eee",
@@ -65,6 +65,7 @@ const styles = {
   primaryBtn: { background: "#007bff", color: "white" },
   editBtn: { background: "#6c757d", color: "white" },
   deleteBtn: { background: "#dc3545", color: "white" },
+
   modalOverlay: {
     position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
     background: "rgba(0,0,0,0.5)",
@@ -81,14 +82,46 @@ const styles = {
     width: "100%", padding: "8px", borderRadius: "4px",
     border: "1px solid #ccc", fontSize: "1rem", boxSizing: "border-box",
   },
+  select: {
+    width: "100%", padding: "8px", borderRadius: "4px",
+    border: "1px solid #ccc", fontSize: "1rem", boxSizing: "border-box", background: "white"
+  },
 };
 
 export default function GroupOverview() {
   const [groups, setGroups] = useState([]);
+  const [programs, setPrograms] = useState([]);
+
   const [loading, setLoading] = useState(true);
-  const [query, setQuery] = useState(""); // Added search state
+  const [query, setQuery] = useState("");
   const [formMode, setFormMode] = useState("overview");
   const [editingId, setEditingId] = useState(null);
+
+  // ✅ 1. LEER ROL
+  const [currentRole, setCurrentRole] = useState(() => {
+    const raw = localStorage.getItem("userRole");
+    return (raw || "").replace(/"/g, "").trim().toLowerCase();
+  });
+
+  // ✅ 2. ACTUALIZAR ROL AL INSTANTE
+  useEffect(() => {
+    const handleRoleUpdate = () => {
+      const raw = localStorage.getItem("userRole");
+      const cleanRole = (raw || "").replace(/"/g, "").trim().toLowerCase();
+      setCurrentRole(cleanRole);
+    };
+    window.addEventListener("role-changed", handleRoleUpdate);
+    window.addEventListener("storage", handleRoleUpdate);
+    return () => {
+      window.removeEventListener("role-changed", handleRoleUpdate);
+      window.removeEventListener("storage", handleRoleUpdate);
+    };
+  }, []);
+
+  // ✅ 3. LÓGICA DE RESTRICCIÓN
+  // Si es Student O Lecturer -> TRUE (restringido)
+  // Si es Admin, PM, HoSP -> FALSE (libre)
+  const isRestricted = ["student", "lecturer"].includes(currentRole);
 
   const [draft, setDraft] = useState({
     groupName: "",
@@ -99,30 +132,40 @@ export default function GroupOverview() {
     program: "",
   });
 
-  async function loadGroups() {
+  async function loadData() {
     setLoading(true);
     try {
-      const data = await api.getGroups();
-      const mapped = (Array.isArray(data) ? data : []).map((x) => ({
+      const groupData = await api.getGroups();
+      let programData = [];
+      try {
+        programData = await api.getPrograms();
+      } catch (e) {
+        console.warn("No se pudieron cargar programas (probablemente rol restringido).", e);
+        programData = [];
+      }
+
+      const mappedGroups = (Array.isArray(groupData) ? groupData : []).map((x) => ({
         id: x.id,
-        groupName: x.group_name,
+        groupName: x.name,
         size: x.size,
         description: x.description || "",
         email: x.email || "",
         parentGroup: x.parent_group || "",
         program: x.program || "",
       }));
-      setGroups(mapped);
+
+      setGroups(mappedGroups);
+      setPrograms(Array.isArray(programData) ? programData : []);
+
     } catch (e) {
-      alert("Error loading groups: " + e.message);
-      setGroups([]);
+      alert("Error loading data: " + e.message);
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    loadGroups();
+    loadData();
   }, []);
 
   function openAdd() {
@@ -148,7 +191,7 @@ export default function GroupOverview() {
     if (!draft.groupName.trim()) return alert("Group name is required");
 
     const payload = {
-      group_name: draft.groupName.trim(),
+      name: draft.groupName.trim(),
       size: Number(draft.size),
       description: draft.description.trim() || null,
       email: draft.email.trim() || null,
@@ -162,10 +205,11 @@ export default function GroupOverview() {
       } else {
         await api.updateGroup(editingId, payload);
       }
-      await loadGroups();
+      await loadData();
       setFormMode("overview");
     } catch (e) {
-      alert("Backend error while saving group.");
+      console.error(e);
+      alert("Backend error while saving group. Check console.");
     }
   }
 
@@ -173,13 +217,12 @@ export default function GroupOverview() {
     if (!window.confirm("Delete this group?")) return;
     try {
       await api.deleteGroup(id);
-      loadGroups();
+      loadData();
     } catch (e) {
       alert("Backend error while deleting group.");
     }
   }
 
-  // Search Logic
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return groups;
@@ -194,9 +237,13 @@ export default function GroupOverview() {
     <div style={styles.container}>
       <div style={styles.header}>
         <h2 style={styles.title}>Group Overview</h2>
-        <button style={{...styles.btn, ...styles.primaryBtn}} onClick={openAdd}>
-          + New Group
-        </button>
+
+        {/* ✅ OCULTAR BOTÓN NEW GROUP SI ES RESTRINGIDO (Student o Lecturer) */}
+        {!isRestricted && (
+          <button style={{...styles.btn, ...styles.primaryBtn}} onClick={openAdd}>
+            + New Group
+          </button>
+        )}
       </div>
 
       <input
@@ -216,7 +263,8 @@ export default function GroupOverview() {
               <th style={styles.th}>Email</th>
               <th style={styles.th}>Parent Group</th>
               <th style={styles.th}>Program</th>
-              <th style={{...styles.th, textAlign:'right'}}>Actions</th>
+              {/* ✅ OCULTAR COLUMNA ACTIONS SI ES RESTRINGIDO */}
+              {!isRestricted && <th style={{...styles.th, textAlign:'right'}}>Actions</th>}
             </tr>
           </thead>
           <tbody>
@@ -224,16 +272,20 @@ export default function GroupOverview() {
               <tr key={g.id} style={styles.tr}>
                 <td style={styles.td}>
                     <strong>{g.groupName}</strong>
-                    <div style={{fontSize:'0.75rem', color:'#888'}}>{g.description}</div>
                 </td>
                 <td style={styles.td}>{g.size}</td>
+                <td style={styles.td}>{g.description || "-"}</td>
                 <td style={styles.td}>{g.email || "-"}</td>
-                <td style={styles.td}>{g.program || "-"}</td>
                 <td style={styles.td}>{g.parentGroup || "-"}</td>
-                <td style={{...styles.td, textAlign:'right'}}>
-                  <button style={{...styles.btn, ...styles.editBtn}} onClick={() => openEdit(g)}>Edit</button>
-                  <button style={{...styles.btn, ...styles.deleteBtn}} onClick={() => remove(g.id)}>Delete</button>
-                </td>
+                <td style={styles.td}>{g.program || "-"}</td>
+
+                {/* ✅ OCULTAR BOTONES SI ES RESTRINGIDO */}
+                {!isRestricted && (
+                  <td style={{...styles.td, textAlign:'right', whiteSpace:'nowrap'}}>
+                    <button style={{...styles.btn, ...styles.editBtn}} onClick={() => openEdit(g)}>Edit</button>
+                    <button style={{...styles.btn, ...styles.deleteBtn}} onClick={() => remove(g.id)}>Delete</button>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
@@ -269,16 +321,41 @@ export default function GroupOverview() {
                     <input style={styles.input} value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} placeholder="e.g., A group focused on software development"/>
                 </div>
 
-                {/* Parent Group */}
+                {/* Parent Group Selector */}
                 <div style={styles.formGroup}>
-                    <label style={styles.label}>Parent Group (can be empty)</label>
-                    <input style={styles.input} value={draft.parentGroup} onChange={(e) => setDraft({ ...draft, parentGroup: e.target.value })} placeholder="e.g., Faculty of Engineering" />
+                    <label style={styles.label}>Parent Group (Optional)</label>
+                    <select
+                        style={styles.select}
+                        value={draft.parentGroup}
+                        onChange={(e) => setDraft({ ...draft, parentGroup: e.target.value })}
+                    >
+                        <option value="">-- No Parent Group --</option>
+                        {groups
+                            .filter(g => g.id !== editingId)
+                            .map(g => (
+                                <option key={g.id} value={g.groupName}>
+                                    {g.groupName}
+                                </option>
+                            ))
+                        }
+                    </select>
                 </div>
 
-                {/*  Program */}
+                {/* Program Selector */}
                 <div style={styles.formGroup}>
-                    <label style={styles.label}>Program (can be empty)</label>
-                    <input style={styles.input} value={draft.program} onChange={(e) => setDraft({ ...draft, program: e.target.value })} placeholder="e.g., Computer Science" />
+                    <label style={styles.label}>Program (Optional)</label>
+                    <select
+                        style={styles.select}
+                        value={draft.program}
+                        onChange={(e) => setDraft({ ...draft, program: e.target.value })}
+                    >
+                        <option value="">-- Select Program --</option>
+                        {programs.map(p => (
+                            <option key={p.id} value={p.name}>
+                                {p.name} ({p.level})
+                            </option>
+                        ))}
+                    </select>
                 </div>
 
                 <div style={{marginTop: '25px', display:'flex', justifyContent:'flex-end', gap:'10px'}}>

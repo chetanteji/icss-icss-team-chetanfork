@@ -1,66 +1,76 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import "./App.css";
+import Layout from "./Layout";
 
-import ProgramOverview from "./Components/ProgramOverview";
-import GroupOverview from "./Components/GroupOverview";
-import LecturerOverview from "./Components/LecturerOverview";
-import ModuleOverview from "./Components/ModuleOverview";
-import RoomOverview from "./Components/RoomOverview";
-import ScheduleOverview from "./Components/ScheduleOverview";
-import ConstraintOverview from "./Components/ConstraintOverview";
-import AvailabilityOverview from "./Components/AvailabilityOverview";
+// Import components
+import ProgramOverview from "./components/ProgramOverview";
+import ModuleOverview from "./components/ModuleOverview";
+import LecturerOverview from "./components/LecturerOverview";
+import RoomOverview from "./components/RoomOverview";
+import GroupOverview from "./components/GroupOverview";
+import ConstraintOverview from "./components/ConstraintOverview";
+import AvailabilityOverview from "./components/AvailabilityOverview";
 
-export default function App() {
-  const [page, setPage] = useState("programs");
+function App() {
+  const [activeTab, setActiveTab] = useState("programs");
+
+  // ✅ FIX: Removed 'setToken' causing build error (unused)
+  // We only read the token here; writing happens in Layout.jsx + Reload
+  const [token] = useState(localStorage.getItem("token"));
+  const [currentUserRole, setCurrentUserRole] = useState(localStorage.getItem("userRole") || "Guest");
+
+  const [navData, setNavData] = useState(null);
+
+  const handleNavigate = (tab, data = null) => {
+    setActiveTab(tab);
+    setNavData(data);
+  };
+
+  // If no token is present, we show a "Welcome" screen instead of the data components.
+  // This prevents the 401 -> Reload loop.
+  const renderContent = () => {
+    if (!token) {
+      return (
+        <div style={{textAlign: "center", marginTop: "100px", color: "#64748b"}}>
+          <h2>Welcome to ICSS Scheduler</h2>
+          <p>Please select a Role in the bottom-left corner to start testing.</p>
+        </div>
+      );
+    }
+
+    // Pass role to all components
+    const commonProps = { currentUserRole, onNavigate: handleNavigate };
+
+    switch (activeTab) {
+      case "programs":
+        return <ProgramOverview initialData={navData} clearInitialData={() => setNavData(null)} {...commonProps} />;
+      case "modules":
+        return <ModuleOverview onNavigate={handleNavigate} {...commonProps} />;
+      case "lecturers":
+        return <LecturerOverview {...commonProps} />;
+      case "rooms":
+        return <RoomOverview {...commonProps} />;
+      case "groups":
+        return <GroupOverview {...commonProps} />;
+      case "constraints":
+        return <ConstraintOverview {...commonProps} />;
+      case "availabilities":
+        return <AvailabilityOverview {...commonProps} />;
+      default:
+        return <ProgramOverview {...commonProps} />;
+    }
+  };
 
   return (
-    <div className="app">
-      <Topbar page={page} setPage={setPage} />
-
-      <div className="page-container">
-        {page === "programs" && <ProgramOverview />}
-        {page === "groups" && <GroupOverview />}
-        {page === "lecturers" && <LecturerOverview />}
-        {page === "modules" && <ModuleOverview />}
-        {page === "rooms" && <RoomOverview />}
-        {page === "schedule" && <ScheduleOverview />}
-        {page === "constraints" && <ConstraintOverview />}
-        {page === "availability" && <AvailabilityOverview />}
-      </div>
-    </div>
+    <Layout
+      activeTab={activeTab}
+      setActiveTab={setActiveTab}
+      currentUserRole={currentUserRole}
+      setCurrentUserRole={setCurrentUserRole}
+    >
+      {renderContent()}
+    </Layout>
   );
 }
 
-function Topbar({ page, setPage }) {
-  const tabs = [
-    { key: "programs", label: "Programs Overview" },
-    { key: "groups", label: "Groups Overview" },
-    { key: "lecturers", label: "Lecturers Overview" },
-    { key: "modules", label: "Modules Overview" },
-    { key: "rooms", label: "Rooms Overview" },
-    { key: "schedule", label: "Schedule Overview" },
-    { key: "constraints", label: "Constraints Overview" },
-    { key: "availability", label: "Availability Overview" },
-  ];
-
-  return (
-    <div className="topbar">
-      <div className="logo">CS2</div>
-
-      <div className="nav">
-        {tabs.map((tab) => (
-          <button
-            key={tab.key}
-            className={page === tab.key ? "active" : ""}
-            onClick={() => setPage(tab.key)}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      <div className="user">👤</div>
-    </div>
-  );
-}
-
+export default App;

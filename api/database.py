@@ -1,24 +1,27 @@
 import os
-from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
+from dotenv import load_dotenv
 
 load_dotenv()
 
-# get url from environment
+
 raw_url = os.getenv("DATABASE_URL")
 
+
 if not raw_url:
-    raise ValueError("DATABASE_URL is not set. Please add it to your .env file.")
 
-# posgress url compatibility
-db_url = raw_url.replace("postgres://", "postgresql://", 1)
+    print("WARNING: DATABASE_URL not set. App will crash if DB is accessed.")
+    db_url = "sqlite:///./build_dummy.db"
+else:
 
-# Create engine with SSL requirements for Neon
+    db_url = raw_url.replace("postgres://", "postgresql://", 1)
+
+
 engine = create_engine(
     db_url,
-    pool_pre_ping=True,  # Helps handle dropped connections
-    connect_args={"sslmode": "require"}
+    pool_pre_ping=True,
+    connect_args={"sslmode": "require"} if "postgresql" in db_url else {}
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
