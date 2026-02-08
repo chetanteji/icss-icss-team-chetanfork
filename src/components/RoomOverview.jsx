@@ -94,8 +94,7 @@ const styles = {
   backBtn: { background: "#edf2f7", color: "#4a5568", marginBottom: "10px" },
   editBtn: { background: "#718096", color: "white", marginRight: "5px" },
   deleteBtn: { background: "#e53e3e", color: "white" },
-  iconBtn: { padding: "8px", width:"40px", cursor: "pointer", border: "1px solid #ccc", borderRadius: "4px", background:"#f0f0f0", display:'flex', alignItems:'center', justifyContent:'center', fontSize:'1.1rem' },
-
+  iconBtn: { padding:"8px", width:"40px", cursor:"pointer", border:"1px solid #ccc", borderRadius:"4px", background:"#f0f0f0", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"1.1rem" },
   modalOverlay: {
     position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
     background: "rgba(0,0,0,0.6)",
@@ -123,18 +122,13 @@ export default function RoomOverview() {
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
-  
-  // --- USER PROFILE LOGIC ---
-  // This mimics getting data from your auth system.
-  // Change "Berlin" to "Dusseldorf" or "Munich" to test other defaults.
+
   const [userProfile] = useState({
     name: "Stephanie",
-    homeCampus: "Berlin" 
+    homeCampus: "Berlin",
   });
 
-  // Automatically start at Stephanie's home campus
   const [selectedCampus, setSelectedCampus] = useState(userProfile.homeCampus);
-  
   const [formMode, setFormMode] = useState("overview");
   const [editingId, setEditingId] = useState(null);
   const [customTypes, setCustomTypes] = useState([]);
@@ -147,13 +141,11 @@ export default function RoomOverview() {
     available: true,
     campus: "",
     specific_location: "",
-    equipment: ""
+    equipment: "",
   });
 
-  const loadRooms = useCallback(async() => {
-  // existing logic
-, [/* real dependencies */]);
-
+  // ✅ ONLY FIXED PART (syntax only)
+  const loadRooms = useCallback(async () => {
     setLoading(true);
     try {
       const data = await api.getRooms();
@@ -165,10 +157,10 @@ export default function RoomOverview() {
         const derivedSpecific = parts.length > 1 ? parts.slice(1).join(" - ") : "";
 
         return {
-            ...r,
-            available: r.status,
-            campus: campuses.includes(derivedCampus) ? derivedCampus : "Other",
-            specific_location: derivedSpecific
+          ...r,
+          available: r.status,
+          campus: campuses.includes(derivedCampus) ? derivedCampus : "Other",
+          specific_location: derivedSpecific
         };
       });
 
@@ -177,19 +169,18 @@ export default function RoomOverview() {
       const existingCustom = mappedRooms
         .map(r => r.type)
         .filter(t => t && !STANDARD_TYPES.includes(t));
-      setCustomTypes([...new Set(existingCustom)].sort());
 
+      setCustomTypes([...new Set(existingCustom)].sort());
     } catch (e) {
       console.error("Load Error:", e);
     } finally {
       setLoading(false);
     }
-  } [campuses]);
+  }, [campuses]);
 
-
-useEffect(() => {
-  loadRooms();
-}, [loadRooms]);
+  useEffect(() => {
+    loadRooms();
+  }, [loadRooms]);
 
 
   function openAdd() {
