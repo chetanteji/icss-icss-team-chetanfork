@@ -1,3 +1,4 @@
+// src/api.js
 const API_URL = process.env.NODE_ENV === 'production'
   ? "/api"
   : "http://127.0.0.1:8000";
@@ -8,7 +9,6 @@ async function request(path, options = {}) {
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
   const url = `${API_BASE_URL}${cleanPath}`;
 
-  // Auto-Attach Token
   const token = localStorage.getItem("token");
   const headers = {
     "Content-Type": "application/json",
@@ -20,17 +20,14 @@ async function request(path, options = {}) {
   }
 
   const res = await fetch(url, { ...options, headers });
-
   const text = await res.text().catch(() => "");
 
   if (!res.ok) {
-    // If token expired (401), auto-logout
     if (res.status === 401) {
         localStorage.removeItem("token");
         localStorage.removeItem("userRole");
-        window.location.href = "/"; // Force reload to login
+        window.location.href = "/";
     }
-
     try {
       const errJson = JSON.parse(text);
       throw new Error(errJson.detail || `${res.status} ${res.statusText}`);
@@ -46,10 +43,7 @@ async function request(path, options = {}) {
 const api = {
   // --- AUTH ---
   login(email, password) {
-    return request("/auth/login", {
-        method: "POST",
-        body: JSON.stringify({ email, password })
-    });
+    return request("/auth/login", { method: "POST", body: JSON.stringify({ email, password }) });
   },
 
   // ---------- PROGRAMS ----------
@@ -77,6 +71,7 @@ const api = {
   deleteLecturer(id) { return request(`/lecturers/${id}`, { method: "DELETE" }); },
 
   // ---------- GROUPS ----------
+  // ✅ ESTA ES LA RUTA QUE FUNCIONARÁ
   getGroups() { return request("/groups/"); },
   createGroup(payload) { return request("/groups/", { method: "POST", body: JSON.stringify(payload) }); },
   updateGroup(id, payload) { return request(`/groups/${id}`, { method: "PUT", body: JSON.stringify(payload) }); },

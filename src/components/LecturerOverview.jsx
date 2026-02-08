@@ -65,7 +65,6 @@ const styles = {
   editBtn: { background: "#6c757d", color: "white" },
   deleteBtn: { background: "#dc3545", color: "white" },
 
-  // Icon Button for Add/Delete
   iconBtn: { padding: "8px", width:"35px", cursor: "pointer", border: "1px solid #ccc", borderRadius: "4px", background:"#f0f0f0", display:'flex', alignItems:'center', justifyContent:'center', fontSize:'1.1rem' },
 
   modalOverlay: {
@@ -88,6 +87,12 @@ const styles = {
     width: "100%", padding: "8px", borderRadius: "4px",
     border: "1px solid #ccc", fontSize: "1rem", boxSizing: "border-box", background: "white"
   },
+  // Estilo para inputs deshabilitados
+  disabledInput: {
+    background: "#e9ecef",
+    cursor: "not-allowed",
+    color: "#6c757d"
+  }
 };
 
 const TITLES = ["Dr.", "Prof."];
@@ -100,20 +105,43 @@ export default function LecturerOverview() {
   const [formMode, setFormMode] = useState("overview");
   const [editingId, setEditingId] = useState(null);
 
-  // Store custom locations found in DB or added by user
   const [customLocations, setCustomLocations] = useState([]);
 
   const [draft, setDraft] = useState({
-    firstName: "",
-    lastName: "",
-    title: "Dr.", // Default to first option
-    employmentType: "Full time",
-    personalEmail: "",
-    mdhEmail: "",
-    phone: "",
-    location: "",
-    teachingLoad: "",
+    firstName: "", lastName: "", title: "Dr.", employmentType: "Full time",
+    personalEmail: "", mdhEmail: "", phone: "", location: "", teachingLoad: "",
   });
+
+  // 1. LEER ROL
+  const [currentRole, setCurrentRole] = useState(() => {
+    const raw = localStorage.getItem("userRole");
+    return (raw || "").replace(/"/g, "").trim().toLowerCase();
+  });
+
+  // 2. ESCUCHAR CAMBIOS DE ROL
+  useEffect(() => {
+    const handleRoleUpdate = () => {
+      const raw = localStorage.getItem("userRole");
+      const cleanRole = (raw || "").replace(/"/g, "").trim().toLowerCase();
+      setCurrentRole(cleanRole);
+    };
+    window.addEventListener("role-changed", handleRoleUpdate);
+    window.addEventListener("storage", handleRoleUpdate);
+    return () => {
+      window.removeEventListener("role-changed", handleRoleUpdate);
+      window.removeEventListener("storage", handleRoleUpdate);
+    };
+  }, []);
+
+  // ✅ 3. DEFINIR PERMISOS
+  const isLecturer = currentRole === "lecturer";
+  const canCreate = !["student", "lecturer"].includes(currentRole);
+  const canDelete = !["student", "lecturer"].includes(currentRole);
+  const canEdit = currentRole !== "student";
+
+  // ✅ Helper para saber si un campo debe estar bloqueado en el modal
+  // Se bloquea si: Eres Lecturer Y estás en modo Edición.
+  const isFieldDisabled = isLecturer && formMode === "edit";
 
   async function loadLecturers() {
     setLoading(true);
@@ -133,14 +161,10 @@ export default function LecturerOverview() {
         fullName: `${x.first_name} ${x.last_name || ""}`.trim(),
       }));
       setLecturers(mapped);
-
-      // Extract existing custom locations from DB
       const existingCustom = mapped
         .map(l => l.location)
         .filter(loc => loc && loc.trim() !== "" && !STANDARD_LOCATIONS.includes(loc));
-
       setCustomLocations([...new Set(existingCustom)].sort());
-
     } catch (e) {
       alert("Error loading lecturers: " + e.message);
       setLecturers([]);
@@ -149,22 +173,13 @@ export default function LecturerOverview() {
     }
   }
 
-  useEffect(() => {
-    loadLecturers();
-  }, []);
+  useEffect(() => { loadLecturers(); }, []);
 
   function openAdd() {
     setEditingId(null);
     setDraft({
-      firstName: "",
-      lastName: "",
-      title: "Dr.",
-      employmentType: "Full time",
-      personalEmail: "",
-      mdhEmail: "",
-      phone: "",
-      location: "",
-      teachingLoad: "",
+      firstName: "", lastName: "", title: "Dr.", employmentType: "Full time",
+      personalEmail: "", mdhEmail: "", phone: "", location: "", teachingLoad: "",
     });
     setFormMode("add");
   }
@@ -172,21 +187,16 @@ export default function LecturerOverview() {
   function openEdit(row) {
     setEditingId(row.id);
     setDraft({
-      firstName: row.firstName || "",
-      lastName: row.lastName || "",
-      title: row.title || "Dr.",
-      employmentType: row.employmentType || "Full time",
-      personalEmail: row.personalEmail || "",
-      mdhEmail: row.mdhEmail || "",
-      phone: row.phone || "",
-      location: row.location || "",
+      firstName: row.firstName || "", lastName: row.lastName || "", title: row.title || "Dr.",
+      employmentType: row.employmentType || "Full time", personalEmail: row.personalEmail || "",
+      mdhEmail: row.mdhEmail || "", phone: row.phone || "", location: row.location || "",
       teachingLoad: row.teachingLoad || "",
     });
     setFormMode("edit");
   }
 
-  // Add New Location Logic
   function addNewLocation() {
+      if (isFieldDisabled) return; // Bloquear acción si está deshabilitado
       const newLoc = prompt("Enter new location:");
       if (newLoc && newLoc.trim() !== "") {
           const formatted = newLoc.trim();
@@ -197,13 +207,10 @@ export default function LecturerOverview() {
       }
   }
 
-  // Delete Custom Location Logic
   function deleteLocation() {
+      if (isFieldDisabled) return; // Bloquear acción si está deshabilitado
       if (!draft.location) return;
-      if (STANDARD_LOCATIONS.includes(draft.location)) {
-          alert("Cannot delete standard locations.");
-          return;
-      }
+      if (STANDARD_LOCATIONS.includes(draft.location)) return alert("Cannot delete standard locations.");
       if (window.confirm(`Remove "${draft.location}" from the list?`)) {
           setCustomLocations(customLocations.filter(t => t !== draft.location));
           setDraft({ ...draft, location: "" });
@@ -215,45 +222,30 @@ export default function LecturerOverview() {
     try {
       await api.deleteLecturer(id);
       await loadLecturers();
-    } catch (e) {
-      alert("Error deleting lecturer: " + e.message);
-    }
+    } catch (e) { alert("Error deleting lecturer: " + e.message); }
   }
 
   async function save() {
-
     if (!draft.firstName.trim() || !draft.title.trim() || !draft.mdhEmail.trim()) {
       return alert("First Name, Title, and MDH Email are required.");
     }
-
     const payload = {
-      first_name: draft.firstName.trim(),
-      last_name: draft.lastName.trim() || null,
-      title: draft.title.trim(),
-      employment_type: draft.employmentType,
-      personal_email: draft.personalEmail.trim() || null,
-      mdh_email: draft.mdhEmail.trim(), // Mandatory
-      phone: draft.phone.trim() || null,
-      location: draft.location.trim() || null,
-      teaching_load: draft.teachingLoad.trim() || null
+      first_name: draft.firstName.trim(), last_name: draft.lastName.trim() || null, title: draft.title.trim(),
+      employment_type: draft.employmentType, personal_email: draft.personalEmail.trim() || null,
+      mdh_email: draft.mdhEmail.trim(), phone: draft.phone.trim() || null,
+      location: draft.location.trim() || null, teaching_load: draft.teachingLoad.trim() || null
     };
 
     try {
-      if (formMode === "add") {
-        await api.createLecturer(payload);
-      } else {
-        await api.updateLecturer(editingId, payload);
-      }
+      if (formMode === "add") await api.createLecturer(payload);
+      else await api.updateLecturer(editingId, payload);
       await loadLecturers();
       setFormMode("overview");
     } catch (e) {
       console.error(e);
       const msg = e.message || "Unknown error";
-      if (msg.includes("422")) {
-         alert("Validation Error: Please check that all fields are correct.");
-      } else {
-         alert("Backend error while saving lecturer.");
-      }
+      if (msg.includes("422")) alert("Validation Error: The server rejected the changes. Lecturers may only edit phone/personal email.");
+      else alert("Backend error while saving lecturer: " + msg);
     }
   }
 
@@ -261,58 +253,46 @@ export default function LecturerOverview() {
     const q = query.trim().toLowerCase();
     if (!q) return lecturers;
     return lecturers.filter((l) =>
-      l.fullName.toLowerCase().includes(q) ||
-      l.location.toLowerCase().includes(q) ||
-      l.title.toLowerCase().includes(q)
+      l.fullName.toLowerCase().includes(q) || l.location.toLowerCase().includes(q) || l.title.toLowerCase().includes(q)
     );
   }, [lecturers, query]);
+
+  // Helper para aplicar estilos condicionales
+  const getInputStyle = (disabled) => disabled ? { ...styles.input, ...styles.disabledInput } : styles.input;
+  const getSelectStyle = (disabled) => disabled ? { ...styles.select, ...styles.disabledInput } : styles.select;
 
   return (
     <div style={styles.container}>
       <div style={styles.header}>
         <h2 style={styles.title}>Lecturer Overview</h2>
-        <button style={{ ...styles.btn, ...styles.primaryBtn }} onClick={openAdd}>
-          + New Lecturer
-        </button>
+        {canCreate && (
+            <button style={{ ...styles.btn, ...styles.primaryBtn }} onClick={openAdd}>+ New Lecturer</button>
+        )}
       </div>
 
-      <input
-        style={styles.searchBar}
-        placeholder="Search by name, location, or title..."
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-      />
+      <input style={styles.searchBar} placeholder="Search by name, location, or title..." value={query} onChange={(e) => setQuery(e.target.value)} />
 
       {loading ? <p>Loading...</p> : (
         <table style={styles.table}>
           <thead style={styles.thead}>
             <tr>
-              <th style={styles.th}>Title</th>
-              <th style={styles.th}>Full Name</th>
-              <th style={styles.th}>Type</th>
-              <th style={styles.th}>Location</th>
-              <th style={styles.th}>MDH Email</th>
-              <th style={styles.th}>Teaching Load</th>
-              <th style={{ ...styles.th, textAlign: 'right' }}>Actions</th>
+              <th style={styles.th}>Title</th> <th style={styles.th}>Full Name</th> <th style={styles.th}>Type</th>
+              <th style={styles.th}>Location</th> <th style={styles.th}>MDH Email</th> <th style={styles.th}>Teaching Load</th>
+              {(canEdit || canDelete) && <th style={{ ...styles.th, textAlign: 'right' }}>Actions</th>}
             </tr>
           </thead>
           <tbody>
             {filtered.map((l) => (
               <tr key={l.id} style={styles.tr}>
-                <td style={styles.td}>{l.title}</td>
-                <td style={styles.td}><strong>{l.fullName}</strong></td>
-                <td style={styles.td}>{l.employmentType}</td>
-                <td style={styles.td}>{l.location || "-"}</td>
-                <td style={styles.td}>{l.mdhEmail || "-"}</td>
-                <td style={styles.td}>{l.teachingLoad || "-"}</td>
-                <td style={{ ...styles.td, textAlign: 'right', whiteSpace: 'nowrap' }}>
-                  <button style={{ ...styles.btn, ...styles.editBtn }} onClick={() => openEdit(l)}>
-                    Edit
-                  </button>
-                  <button style={{ ...styles.btn, ...styles.deleteBtn }} onClick={() => remove(l.id)}>
-                    Delete
-                  </button>
-                </td>
+                <td style={styles.td}>{l.title}</td> <td style={styles.td}><strong>{l.fullName}</strong></td>
+                <td style={styles.td}>{l.employmentType}</td> <td style={styles.td}>{l.location || "-"}</td>
+                <td style={styles.td}>{l.mdhEmail || "-"}</td> <td style={styles.td}>{l.teachingLoad || "-"}</td>
+                {(canEdit || canDelete) && (
+                    <td style={{ ...styles.td, textAlign: 'right', whiteSpace: 'nowrap' }}>
+                    {canEdit && <button style={{ ...styles.btn, ...styles.editBtn }} onClick={() => openEdit(l)}>Edit</button>}
+                    {canDelete && <button style={{ ...styles.btn, ...styles.deleteBtn }} onClick={() => remove(l.id)}>Delete</button>}
+                    </td>
+                )}
               </tr>
             ))}
           </tbody>
@@ -328,14 +308,10 @@ export default function LecturerOverview() {
               <button onClick={() => setFormMode("overview")} style={{ border: 'none', background: 'transparent', fontSize: '1.5rem', cursor: 'pointer' }}>×</button>
             </div>
 
-            {/* Title Selector */}
+            {/* ✅ CAMPOS BLOQUEADOS SI isFieldDisabled ES TRUE */}
             <div style={styles.formGroup}>
               <label style={styles.label}>Title</label>
-              <select
-                style={styles.select}
-                value={draft.title}
-                onChange={(e) => setDraft({ ...draft, title: e.target.value })}
-              >
+              <select style={getSelectStyle(isFieldDisabled)} value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} disabled={isFieldDisabled}>
                 {TITLES.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
@@ -343,125 +319,58 @@ export default function LecturerOverview() {
             <div style={{ display: 'flex', gap: '15px', marginBottom: '15px' }}>
               <div style={{ flex: 1 }}>
                 <label style={styles.label}>First Name</label>
-                <input
-                  style={styles.input}
-                  value={draft.firstName}
-                  onChange={(e) => setDraft({ ...draft, firstName: e.target.value })}
-                  placeholder="e.g., Mohamed"
-                />
+                <input style={getInputStyle(isFieldDisabled)} value={draft.firstName} onChange={(e) => setDraft({ ...draft, firstName: e.target.value })} disabled={isFieldDisabled} />
               </div>
               <div style={{ flex: 1 }}>
                 <label style={styles.label}>Last Name</label>
-                <input
-                  style={styles.input}
-                  value={draft.lastName}
-                  onChange={(e) => setDraft({ ...draft, lastName: e.target.value })}
-                  placeholder="e.g., Salah"
-                />
+                <input style={getInputStyle(isFieldDisabled)} value={draft.lastName} onChange={(e) => setDraft({ ...draft, lastName: e.target.value })} disabled={isFieldDisabled} />
               </div>
             </div>
 
             <div style={{ display: 'flex', gap: '15px', marginBottom: '15px' }}>
-              {/* Location Selector (Standard + Custom) */}
               <div style={{ flex: 1 }}>
                 <label style={styles.label}>Location</label>
                 <div style={{display:'flex', gap:'5px'}}>
-                    <select
-                        style={{...styles.select, flex:1}}
-                        value={draft.location}
-                        onChange={(e) => setDraft({ ...draft, location: e.target.value })}
-                    >
+                    <select style={{...getSelectStyle(isFieldDisabled), flex:1}} value={draft.location} onChange={(e) => setDraft({ ...draft, location: e.target.value })} disabled={isFieldDisabled}>
                         <option value="">-- Select Location --</option>
-                        <optgroup label="Standard">
-                            {STANDARD_LOCATIONS.map(l => <option key={l} value={l}>{l}</option>)}
-                        </optgroup>
-                        {customLocations.length > 0 && (
-                            <optgroup label="Custom">
-                                {customLocations.map(l => <option key={l} value={l}>{l}</option>)}
-                            </optgroup>
-                        )}
+                        <optgroup label="Standard">{STANDARD_LOCATIONS.map(l => <option key={l} value={l}>{l}</option>)}</optgroup>
+                        {customLocations.length > 0 && (<optgroup label="Custom">{customLocations.map(l => <option key={l} value={l}>{l}</option>)}</optgroup>)}
                     </select>
-
-                    <button
-                        type="button"
-                        title="Add new location"
-                        onClick={addNewLocation}
-                        style={{...styles.iconBtn, background: '#e2e6ea'}}
-                    >
-                        +
-                    </button>
-
-                    <button
-                        type="button"
-                        title="Delete selected custom location"
-                        onClick={deleteLocation}
-                        disabled={!customLocations.includes(draft.location)}
-                        style={{
-                            ...styles.iconBtn,
-                            background: customLocations.includes(draft.location) ? '#f8d7da' : '#eee',
-                            color: customLocations.includes(draft.location) ? '#721c24' : '#aaa',
-                            cursor: customLocations.includes(draft.location) ? 'pointer' : 'default'
-                        }}
-                    >
-                        🗑
-                    </button>
+                    {/* Botones de location también se bloquean */}
+                    <button type="button" onClick={addNewLocation} disabled={isFieldDisabled} style={{...styles.iconBtn, background: '#e2e6ea', opacity: isFieldDisabled ? 0.5 : 1, cursor: isFieldDisabled ? 'not-allowed' : 'pointer'}}>+</button>
+                    <button type="button" onClick={deleteLocation} disabled={isFieldDisabled || !customLocations.includes(draft.location)} style={{...styles.iconBtn, background: (isFieldDisabled || !customLocations.includes(draft.location)) ? '#eee' : '#f8d7da', color: (isFieldDisabled || !customLocations.includes(draft.location)) ? '#aaa' : '#721c24', opacity: isFieldDisabled ? 0.5 : 1, cursor: (isFieldDisabled || !customLocations.includes(draft.location)) ? 'not-allowed' : 'pointer'}}>🗑</button>
                 </div>
               </div>
-
               <div style={{ flex: 1 }}>
                 <label style={styles.label}>Employment Type</label>
-                <select
-                  style={styles.select}
-                  value={draft.employmentType}
-                  onChange={(e) => setDraft({ ...draft, employmentType: e.target.value })}
-                >
-                  <option value="Full time">Full time</option>
-                  <option value="Part time">Part time</option>
-                  <option value="Freelancer">Freelancer</option>
+                <select style={getSelectStyle(isFieldDisabled)} value={draft.employmentType} onChange={(e) => setDraft({ ...draft, employmentType: e.target.value })} disabled={isFieldDisabled}>
+                  <option value="Full time">Full time</option> <option value="Part time">Part time</option> <option value="Freelancer">Freelancer</option>
                 </select>
               </div>
             </div>
 
             <div style={{ display: 'flex', gap: '15px', marginBottom: '15px' }}>
                 <div style={{ flex: 1 }}>
-                    {/*  MDH Email is Required */}
                     <label style={styles.label}>MDH Email</label>
-                    <input
-                      style={styles.input}
-                      value={draft.mdhEmail}
-                      onChange={(e) => setDraft({ ...draft, mdhEmail: e.target.value })}
-                      placeholder="e.g., anna@mdh.de"
-                    />
+                    <input style={getInputStyle(isFieldDisabled)} value={draft.mdhEmail} onChange={(e) => setDraft({ ...draft, mdhEmail: e.target.value })} disabled={isFieldDisabled} />
                 </div>
+
+                {/* ✅ PERSONAL EMAIL: SIEMPRE HABILITADO */}
                 <div style={{ flex: 1 }}>
                     <label style={styles.label}>Personal Email (Optional)</label>
-                    <input
-                      style={styles.input}
-                      value={draft.personalEmail}
-                      onChange={(e) => setDraft({ ...draft, personalEmail: e.target.value })}
-                      placeholder="e.g., anna@gmail.com"
-                    />
+                    <input style={styles.input} value={draft.personalEmail} onChange={(e) => setDraft({ ...draft, personalEmail: e.target.value })} placeholder="e.g., anna@gmail.com" />
                 </div>
             </div>
 
+            {/* ✅ PHONE NUMBER: SIEMPRE HABILITADO */}
             <div style={styles.formGroup}>
               <label style={styles.label}>Phone Number (Optional)</label>
-              <input
-                style={styles.input}
-                value={draft.phone}
-                onChange={(e) => setDraft({ ...draft, phone: e.target.value })}
-                placeholder="e.g., +49 123 45678"
-              />
+              <input style={styles.input} value={draft.phone} onChange={(e) => setDraft({ ...draft, phone: e.target.value })} placeholder="e.g., +49 123 45678" />
             </div>
 
             <div style={styles.formGroup}>
               <label style={styles.label}>Teaching Load</label>
-              <input
-                style={styles.input}
-                value={draft.teachingLoad}
-                onChange={(e) => setDraft({ ...draft, teachingLoad: e.target.value })}
-                placeholder="e.g., 18 SWS"
-              />
+              <input style={getInputStyle(isFieldDisabled)} value={draft.teachingLoad} onChange={(e) => setDraft({ ...draft, teachingLoad: e.target.value })} disabled={isFieldDisabled} />
             </div>
 
             <div style={{ marginTop: '25px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>

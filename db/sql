@@ -31,11 +31,12 @@ CREATE TABLE "lecturers" (
 	"location" varchar,
 	"teaching_load" varchar
 );
-CREATE TABLE "module_offered" (
-	"program" serial PRIMARY KEY,
-	"semester" integer NOT NULL,
-	"module" varchar NOT NULL,
-	"ects" integer NOT NULL
+CREATE TABLE "module_lecturer" (
+	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "module_lecturer_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
+	"module" text,
+	"lecturers" serial,
+	"module_name" varchar,
+	"lecturer_name" varchar
 );
 CREATE TABLE "modules" (
 	"module_code" varchar PRIMARY KEY DEFAULT nextval('modules_module_id_seq'::regclass),
@@ -47,6 +48,13 @@ CREATE TABLE "modules" (
 	"category" varchar,
 	"study_program_id" integer NOT NULL,
 	"specialization" integer
+);
+CREATE TABLE "offered_module" (
+	"program" serial,
+	"semester" integer NOT NULL,
+	"module" varchar NOT NULL,
+	"ects" integer NOT NULL,
+	CONSTRAINT "module_offered_pkey" PRIMARY KEY("program")
 );
 CREATE TABLE "rooms" (
 	"id" serial PRIMARY KEY,
@@ -70,6 +78,13 @@ CREATE TABLE "scheduler_constraints" (
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
+CREATE TABLE "semester" (
+	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "semester_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
+	"semester_type" varchar,
+	"start_date" date,
+	"end_date" date,
+	"programs" serial
+);
 CREATE TABLE "specializations" (
 	"id" serial PRIMARY KEY,
 	"program_id" integer,
@@ -88,10 +103,14 @@ CREATE TABLE "study_programs" (
 	"total_ects" integer NOT NULL,
 	"location" varchar(200)
 );
-ALTER TABLE "module_offered" ADD CONSTRAINT "module_offered_module_fkey" FOREIGN KEY ("module") REFERENCES "modules"("module_code");
-ALTER TABLE "module_offered" ADD CONSTRAINT "module_offered_program_fkey" FOREIGN KEY ("program") REFERENCES "study_programs"("id");
+ALTER TABLE "module_lecturer" ADD CONSTRAINT "constraint_1" FOREIGN KEY ("lecturers") REFERENCES "lecturers"("id");
+ALTER TABLE "module_lecturer" ADD CONSTRAINT "modules" FOREIGN KEY ("module") REFERENCES "modules"("module_code");
 ALTER TABLE "modules" ADD CONSTRAINT "constraint_1" FOREIGN KEY ("specialization") REFERENCES "specializations"("id");
+ALTER TABLE "offered_module" ADD CONSTRAINT "constraint_1" FOREIGN KEY ("semester") REFERENCES "semester"("id");
+ALTER TABLE "offered_module" ADD CONSTRAINT "module_offered_module_fkey" FOREIGN KEY ("module") REFERENCES "modules"("module_code");
+ALTER TABLE "offered_module" ADD CONSTRAINT "module_offered_program_fkey" FOREIGN KEY ("program") REFERENCES "study_programs"("id");
 ALTER TABLE "scheduler_constraints" ADD CONSTRAINT "scheduler_constraints_constraint_type_id_fkey" FOREIGN KEY ("constraint_type_id") REFERENCES "constraint_types"("id");
+ALTER TABLE "semester" ADD CONSTRAINT "constraint_1" FOREIGN KEY ("programs") REFERENCES "study_programs"("id");
 ALTER TABLE "specializations" ADD CONSTRAINT "constraint_15" FOREIGN KEY ("program_id") REFERENCES "study_programs"("id");
 CREATE UNIQUE INDEX "constraint_types_pkey" ON "constraint_types" ("id");
 CREATE INDEX "ix_constraint_types_id" ON "constraint_types" ("id");
@@ -99,14 +118,16 @@ CREATE UNIQUE INDEX "groups_pkey" ON "groups" ("id");
 CREATE INDEX "ix_groups_id" ON "groups" ("id");
 CREATE INDEX "ix_lecturers_id" ON "lecturers" ("id");
 CREATE UNIQUE INDEX "lecturers_pkey" ON "lecturers" ("id");
-CREATE UNIQUE INDEX "module_offered_pkey" ON "module_offered" ("program");
+CREATE UNIQUE INDEX "module_lecturer_pkey" ON "module_lecturer" ("id");
 CREATE INDEX "ix_modules_module_id" ON "modules" ("module_code");
 CREATE UNIQUE INDEX "modules_pkey" ON "modules" ("module_code");
+CREATE UNIQUE INDEX "module_offered_pkey" ON "offered_module" ("program");
 CREATE INDEX "ix_rooms_id" ON "rooms" ("id");
 CREATE UNIQUE INDEX "ix_rooms_name" ON "rooms" ("name");
 CREATE UNIQUE INDEX "rooms_pkey" ON "rooms" ("id");
 CREATE INDEX "ix_scheduler_constraints_id" ON "scheduler_constraints" ("id");
 CREATE UNIQUE INDEX "scheduler_constraints_pkey" ON "scheduler_constraints" ("id");
+CREATE UNIQUE INDEX "semester_pkey" ON "semester" ("id");
 CREATE INDEX "ix_specializations_id" ON "specializations" ("id");
 CREATE UNIQUE INDEX "specializations_pkey" ON "specializations" ("id");
 CREATE INDEX "ix_study_programs_id" ON "study_programs" ("id");
