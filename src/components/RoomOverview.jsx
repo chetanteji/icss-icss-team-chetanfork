@@ -150,7 +150,7 @@ export default function RoomOverview() {
     equipment: ""
   });
 
-  const loadRooms = useCallback(() => {
+  const loadRooms = useCallback(async() => {
   // existing logic
 , [/* real dependencies */]);
 
@@ -184,7 +184,7 @@ export default function RoomOverview() {
     } finally {
       setLoading(false);
     }
-  }
+  } [campuses]);
 
 
 useEffect(() => {
