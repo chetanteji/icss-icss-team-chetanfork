@@ -310,7 +310,7 @@ export default function RoomOverview() {
               }}
             >
               <span style={{fontSize: '3rem', marginBottom: '15px'}}>🏢</span>
-              <h3 style={{margin: 0, color: '#2d3748'}}>{campus} {campus === userProfile.homeCampus && "🏠"}</h3>
+              <h3 style={{margin: 0, color: '#2d3748'}}>{campus} {campus === userProfile.homeCampus && ""}</h3>
               <p style={{fontSize: '0.9rem', color: '#a0aec0', marginTop: '10px'}}>
                 {rooms.filter(r => r.campus === campus).length} Rooms Registered
               </p>
