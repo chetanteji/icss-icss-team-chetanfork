@@ -132,7 +132,7 @@ export default function RoomOverview() {
   const [formMode, setFormMode] = useState("overview");
   const [editingId, setEditingId] = useState(null);
   const [customTypes, setCustomTypes] = useState([]);
-  const campuses = useMemo(() => ["Berlin", "Dusseldorf", "Munich"];
+  const campuses = useMemo(() => ["Berlin", "Dusseldorf", "Munich"], []);
 
   const [draft, setDraft] = useState({
     name: "",
