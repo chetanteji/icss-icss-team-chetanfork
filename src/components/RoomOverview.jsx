@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import api from "../api";
 
 // --- STYLES ---
@@ -150,7 +150,10 @@ export default function RoomOverview() {
     equipment: ""
   });
 
-  async function loadRooms() {
+  const loadRooms = useCallback(() => {
+  // existing logic
+, [/* real dependencies */]);
+
     setLoading(true);
     try {
       const data = await api.getRooms();
@@ -183,9 +186,11 @@ export default function RoomOverview() {
     }
   }
 
-  useEffect(() => {
-    loadRooms();
-  }, []);
+
+useEffect(() => {
+  loadRooms();
+}, [loadRooms]);
+
 
   function openAdd() {
     setEditingId(null);
