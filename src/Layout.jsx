@@ -81,14 +81,14 @@ const Layout = ({ activeTab, setActiveTab, children, currentUserRole, setCurrent
 
               {/* ===== CURRICULUM ===== */}
 
-{["admin", "pm", "hosp", "lecturer"].includes(role) && (
+{["admin", "pm", "hosp"].includes(role) && (
   <>
     <div className="nav-section-title">Curriculum</div>
 
     <NavLink
       id="programs"
       label="Study Programs"
-      rolesAllowed={["admin", "pm", "hosp", "lecturer"]}
+      rolesAllowed={["admin", "pm", "hosp"]}
     />
   </>
 )}
@@ -111,7 +111,7 @@ const Layout = ({ activeTab, setActiveTab, children, currentUserRole, setCurrent
     <NavLink
       id="groups"
       label="Student Groups"
-      rolesAllowed={["admin", "pm", "hosp", "lecturer"]}
+      rolesAllowed={["admin", "pm", "hosp"]}
     />
   </>
 )}
