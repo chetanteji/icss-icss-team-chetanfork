@@ -124,6 +124,7 @@ if (["lecturer", "student"].includes(normalizedBackendRole)) {
     </>
   )}
 
+
           {/* ✅ FACILITIES: Ocultamos toda la sección si es Estudiante */}
           {!isStudent && (
             <>
