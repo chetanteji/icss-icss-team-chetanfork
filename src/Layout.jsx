@@ -79,7 +79,7 @@ const Layout = ({ activeTab, setActiveTab, children, currentUserRole, setCurrent
 
         <div className="sidebar-nav">
           <div className="nav-section-title">Curriculum</div>
-          <NavLink id="programs" label="Study Programs" rolesAllowed={["admin", "pm", "hosp", "lecturer", "student"]} />
+          <NavLink id="programs" label="Study Programs" rolesAllowed={["admin", "pm", "hosp", "lecturer"]} />
           <NavLink id="modules" label="Modules" rolesAllowed={["admin", "pm", "hosp", "lecturer", "student"]} />
 
           <div className="nav-section-title">People & Groups</div>
