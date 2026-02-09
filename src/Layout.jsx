@@ -59,7 +59,7 @@ const Layout = ({ activeTab, setActiveTab, children, currentUserRole, setCurrent
 
       // 🔒 Reset tab for Lecturer & Student
 if (["lecturer", "student"].includes(normalizedBackendRole)) {
-  setActiveTab("modules");
+    setActiveTab("modules");
 }
 
 
