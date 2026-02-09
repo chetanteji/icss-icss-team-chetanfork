@@ -86,14 +86,14 @@ if (["lecturer", "student"].includes(normalizedBackendRole)) {
             <div className="sidebar-nav">
 
   {/* ===== CURRICULUM (NOT FOR STUDENTS) ===== */}
-  {["admin", "pm", "hosp"].includes(role) && (
+  {["admin", "pm", "hosp", "lecturer" ].includes(role) && (
     <>
       <div className="nav-section-title">Curriculum</div>
 
       <NavLink
         id="programs"
         label="Study Programs"
-        rolesAllowed={["admin", "pm", "hosp"]}
+        rolesAllowed={["admin", "pm", "hosp", "lecturer"]}
       />
     </>
   )}
@@ -119,7 +119,7 @@ if (["lecturer", "student"].includes(normalizedBackendRole)) {
       <NavLink
         id="groups"
         label="Student Groups"
-        rolesAllowed={["admin", "pm", "hosp"]}
+        rolesAllowed={["admin", "pm", "hosp", "lecturer"]}
       />
     </>
   )}
@@ -128,7 +128,7 @@ if (["lecturer", "student"].includes(normalizedBackendRole)) {
           {!isStudent && (
             <>
               <div className="nav-section-title">Facilities</div>
-              <NavLink id="rooms" label="Rooms" rolesAllowed={["admin", "pm", "hosp"]} />
+              <NavLink id="rooms" label="Rooms" rolesAllowed={["admin", "pm", "hosp", "lecturer"]} />
             </>
           )}
 
@@ -136,7 +136,7 @@ if (["lecturer", "student"].includes(normalizedBackendRole)) {
           {!isStudent && (
             <>
               <div className="nav-section-title">Planning Logic</div>
-              <NavLink id="constraints" label="Constraints & Rules" rolesAllowed={["admin", "pm", "hosp", "lecturer"]} />
+              <NavLink id="constraints" label="Constraints & Rules" rolesAllowed={["admin", "pm", "hosp"]} />
               <NavLink id="availabilities" label="Availability" rolesAllowed={["admin", "pm", "hosp", "lecturer"]} />
             </>
           )}
