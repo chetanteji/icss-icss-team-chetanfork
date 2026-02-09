@@ -78,12 +78,28 @@ const Layout = ({ activeTab, setActiveTab, children, currentUserRole, setCurrent
         <div className="sidebar-header">ICSS Scheduler</div>
 
             <div className="sidebar-nav">
-              <div className="nav-section-title">Curriculum</div>
-              <NavLink id="programs" label="Study Programs" rolesAllowed={["admin", "pm", "hosp", "lecturer"]} />
-              <NavLink id="modules" label="Modules" rolesAllowed={["admin", "pm", "hosp", "lecturer", "student"]} />
 
-          {["admin", "pm", "hosp", "lecturer"].includes(role) && (
+              {/* ===== CURRICULUM ===== */}
+
+{["admin", "pm", "hosp", "lecturer"].includes(role) && (
   <>
+    <div className="nav-section-title">Curriculum</div>
+
+    <NavLink
+      id="programs"
+      label="Study Programs"
+      rolesAllowed={["admin", "pm", "hosp", "lecturer"]}
+    />
+  </>
+)}
+
+{/* Modules are visible to students */}
+<NavLink
+  id="modules"
+  label="Modules"
+  rolesAllowed={["admin", "pm", "hosp", "lecturer", "student"]}
+/>
+
     <div className="nav-section-title">People & Groups</div>
 
     <NavLink
