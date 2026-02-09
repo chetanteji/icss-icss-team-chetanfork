@@ -85,7 +85,7 @@ const Layout = ({ activeTab, setActiveTab, children, currentUserRole, setCurrent
           <div className="nav-section-title">People & Groups</div>
           {/* ✅ LECTURERS: Quitamos "student" de la lista permitida */}
           <NavLink id="lecturers" label="Lecturers" rolesAllowed={["admin", "pm", "hosp", "lecturer"]} />
-          <NavLink id="groups" label="Student Groups" rolesAllowed={["admin", "pm", "hosp", "lecturer", "student"]} />
+          <NavLink id="groups" label="Student Groups" rolesAllowed={["admin", "pm", "hosp", "lecturer"]} />
 
           {/* ✅ FACILITIES: Ocultamos toda la sección si es Estudiante */}
           {!isStudent && (
