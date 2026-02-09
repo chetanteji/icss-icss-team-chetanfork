@@ -377,8 +377,17 @@ export default function RoomOverview() {
                   </span>
                 </td>
                 <td style={{...styles.td, textAlign:'right', whiteSpace:'nowrap'}}>
-                  <button style={{...styles.btn, ...styles.editBtn}} onClick={() => openEdit(r)}>Edit</button>
-                  <button style={{...styles.btn, ...styles.deleteBtn}} onClick={() => remove(r.id)}>Delete</button>
+                    {!isReadOnly && (
+  <button onClick={openCreateRoom}>+ New Room</button>
+)}
+
+                    {!isReadOnly && (
+  <>
+    <button onClick={() => editRoom(room.id)}>Edit</button>
+    <button onClick={() => deleteRoom(room.id)}>Delete</button>
+  </>
+)}
+
                 </td>
               </tr>
             ))}
