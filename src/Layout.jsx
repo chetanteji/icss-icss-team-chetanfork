@@ -57,6 +57,12 @@ const Layout = ({ activeTab, setActiveTab, children, currentUserRole, setCurrent
 
       setCurrentUserRole(normalizedBackendRole);
 
+      // 🔒 Reset tab for Lecturer & Student
+if (["lecturer", "student"].includes(normalizedBackendRole)) {
+  setActiveTab("modules");
+}
+
+
       // Avisamos del cambio de rol
       window.dispatchEvent(new Event("role-changed"));
 
