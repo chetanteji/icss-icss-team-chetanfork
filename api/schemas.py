@@ -1,4 +1,5 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
 from typing import List, Optional, Any
 
 # --- AUTH ---
@@ -23,6 +24,11 @@ class LecturerBase(BaseModel):
     phone: Optional[str] = None
     location: Optional[str] = None
     teaching_load: Optional[str] = None
+class ModuleMini(BaseModel):
+    module_code: str
+    name: str
+    class Config:
+        from_attributes = True
 
 class LecturerCreate(LecturerBase):
     pass
@@ -46,8 +52,13 @@ class LecturerSelfUpdate(BaseModel):
 
 class LecturerResponse(LecturerBase):
     id: int
+    modules: List[ModuleMini] = []   
     class Config:
         from_attributes = True
+
+
+class LecturerModulesUpdate(BaseModel):
+    module_codes: List[str] = []
 
 # --- STUDY PROGRAMS ---
 class StudyProgramBase(BaseModel):
@@ -107,6 +118,10 @@ class SpecializationResponse(SpecializationBase):
         from_attributes = True
 
 # --- MODULES ---
+class AssessmentPart(BaseModel):
+    type: str
+    weight: Optional[int] = Field(default=None, ge=0, le=100)
+
 class ModuleBase(BaseModel):
     module_code: str
     name: str
@@ -119,21 +134,30 @@ class ModuleBase(BaseModel):
 
 class ModuleCreate(ModuleBase):
     specialization_ids: Optional[List[int]] = []
+    assessment_breakdown: Optional[List[AssessmentPart]] = None
+
+
 
 class ModuleUpdate(BaseModel):
     name: Optional[str] = None
     ects: Optional[int] = None
     room_type: Optional[str] = None
     assessment_type: Optional[str] = None
+    assessment_breakdown: Optional[List[AssessmentPart]] = None
     semester: Optional[int] = None
     category: Optional[str] = None
     program_id: Optional[int] = None
     specialization_ids: Optional[List[int]] = None
 
+
+
 class ModuleResponse(ModuleBase):
+    assessment_breakdown: List[AssessmentPart] = []
     specializations: List[SpecializationResponse] = []
+
     class Config:
         from_attributes = True
+
 
 # --- GROUPS ---
 class GroupBase(BaseModel):

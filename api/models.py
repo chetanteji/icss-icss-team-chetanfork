@@ -1,3 +1,4 @@
+
 from sqlalchemy import Column, Integer, String, Boolean, Date, ForeignKey, Text, JSON, TIMESTAMP, Table
 from sqlalchemy.orm import relationship, declarative_base
 from sqlalchemy.sql import func
@@ -10,6 +11,13 @@ module_specializations = Table(
     Base.metadata,
     Column("module_code", String, ForeignKey("modules.module_code", ondelete="CASCADE"), primary_key=True),
     Column("specialization_id", Integer, ForeignKey("specializations.id", ondelete="CASCADE"), primary_key=True),
+)
+# Association Table for Many-to-Many relationship between Lecturers and Modules
+lecturer_modules = Table(
+    "lecturer_modules",
+    Base.metadata,
+    Column("lecturer_id", Integer, ForeignKey("lecturers.ID", ondelete="CASCADE"), primary_key=True),
+    Column("module_code", String, ForeignKey("modules.module_code", ondelete="CASCADE"), primary_key=True),
 )
 
 
@@ -37,6 +45,7 @@ class Lecturer(Base):
     phone = Column(String(50), nullable=True)
     location = Column(String(200), nullable=True)
     teaching_load = Column(String(100), nullable=True)
+    modules = relationship("Module", secondary=lecturer_modules, back_populates="lecturers")
 
 
 class StudyProgram(Base):
@@ -67,6 +76,7 @@ class Module(Base):
     program_id = Column(Integer, ForeignKey("study_programs.id"), nullable=True)
 
     specializations = relationship("Specialization", secondary=module_specializations, back_populates="modules")
+    lecturers = relationship("Lecturer", secondary=lecturer_modules, back_populates="modules")
 
 
 class Specialization(Base):
