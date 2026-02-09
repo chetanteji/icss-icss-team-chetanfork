@@ -77,15 +77,28 @@ const Layout = ({ activeTab, setActiveTab, children, currentUserRole, setCurrent
       <aside className="sidebar">
         <div className="sidebar-header">ICSS Scheduler</div>
 
-        <div className="sidebar-nav">
-          <div className="nav-section-title">Curriculum</div>
-          <NavLink id="programs" label="Study Programs" rolesAllowed={["admin", "pm", "hosp", "lecturer"]} />
-          <NavLink id="modules" label="Modules" rolesAllowed={["admin", "pm", "hosp", "lecturer", "student"]} />
+            <div className="sidebar-nav">
+              <div className="nav-section-title">Curriculum</div>
+              <NavLink id="programs" label="Study Programs" rolesAllowed={["admin", "pm", "hosp", "lecturer"]} />
+              <NavLink id="modules" label="Modules" rolesAllowed={["admin", "pm", "hosp", "lecturer", "student"]} />
 
-          <div className="nav-section-title">People & Groups</div>
-          {/* ✅ LECTURERS: Quitamos "student" de la lista permitida */}
-          <NavLink id="lecturers" label="Lecturers" rolesAllowed={["admin", "pm", "hosp", "lecturer"]} />
-          <NavLink id="groups" label="Student Groups" rolesAllowed={["admin", "pm", "hosp", "lecturer"]} />
+          {["admin", "pm", "hosp", "lecturer"].includes(role) && (
+  <>
+    <div className="nav-section-title">People & Groups</div>
+
+    <NavLink
+      id="lecturers"
+      label="Lecturers"
+      rolesAllowed={["admin", "pm", "hosp", "lecturer"]}
+    />
+
+    <NavLink
+      id="groups"
+      label="Student Groups"
+      rolesAllowed={["admin", "pm", "hosp", "lecturer"]}
+    />
+  </>
+)}
 
           {/* ✅ FACILITIES: Ocultamos toda la sección si es Estudiante */}
           {!isStudent && (
