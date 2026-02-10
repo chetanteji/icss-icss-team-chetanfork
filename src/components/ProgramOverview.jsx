@@ -98,7 +98,7 @@ export default function ProgramOverview({ initialData, clearInitialData, current
   // ✅ ROLE-BASED PERMISSIONS (Lowercase FIX)
   const role = currentUserRole?.toLowerCase();
   const isPM = ["admin", "pm"].includes(role);
-  const isHoSP = role === "hosp";
+
 
 
   // Helper function to determine if the user can manage a specific program

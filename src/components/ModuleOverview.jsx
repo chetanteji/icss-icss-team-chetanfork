@@ -88,7 +88,7 @@ const styles = {
 };
 
 const role = (localStorage.getItem("userRole") || "").toLowerCase();
-const isLecturer = role === "lecturer";
+
 
 
 const STANDARD_ROOM_TYPES = ["Lecture Classroom", "Computer Lab", "Seminar"];
