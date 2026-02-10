@@ -1,6 +1,13 @@
 import React, { useState, useEffect, useCallback } from "react";
 import api from "../api";
 
+const role = (localStorage.getItem("userRole") || "").toLowerCase();
+
+const isPM = role === "pm" || role === "admin";
+const isHoSP = role === "hosp";
+const isLecturer = role === "lecturer";
+const isStudent = role === "student";
+
 // --- CONSTANTS ---
 const DEGREE_OPTIONS = {
   Bachelor: ["B.Sc.", "B.A.", "LL.B."],
@@ -186,6 +193,9 @@ function ProgramList({ programs, lecturers, onSelect, refresh, isPM, canManagePr
       total_ects: 180, level: "Bachelor", status: true,
       start_date: "", location: ""
   });
+
+
+
 
   const handleCreate = async () => {
     if(!newProg.name || !newProg.acronym) return alert("Name and Acronym are required.");
