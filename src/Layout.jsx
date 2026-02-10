@@ -7,7 +7,7 @@ const Layout = ({ activeTab, setActiveTab, children, currentUserRole, setCurrent
   const role = (currentUserRole || "").trim().toLowerCase();
 
   // ✅ Variable para saber si es estudiante (y ocultar cosas grandes)
-  const isStudent = role === "student";
+
   const isLecturer = role === "lecturer";
   const isHoSP = role === "hosp";
   const isPM = role === "pm" || role === "admin";
