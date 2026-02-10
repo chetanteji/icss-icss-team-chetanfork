@@ -1,92 +1,166 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session, joinedload
 from typing import List
 
 from ..database import get_db
 from .. import models, schemas, auth
-from ..permissions import role_of, is_admin_or_pm
+from ..permissions import role_of, is_admin_or_pm, require_admin_or_pm, require_lecturer_link
 
 router = APIRouter(prefix="/lecturers", tags=["lecturers"])
 
 
-# ✅ GET: Ver Lecturers (CON FILTRO DE PRIVACIDAD)
 @router.get("/", response_model=List[schemas.LecturerResponse])
 def read_lecturers(db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):
     r = role_of(current_user)
 
-    # 🔒 SI ES LECTURER: Solo se ve a sí mismo
+    if r == "hosp" or is_admin_or_pm(current_user):
+        # ✅ load assigned modules as well (needs Lecturer.modules relationship in models.py)
+        return db.query(models.Lecturer).options(joinedload(models.Lecturer.modules)).all()
+
     if r == "lecturer":
-        # Verificamos si el usuario tiene un lecturer_id asociado
-        if hasattr(current_user, "lecturer_id") and current_user.lecturer_id is not None:
-            return db.query(models.Lecturer).filter(models.Lecturer.id == current_user.lecturer_id).all()
-        else:
-            # Si no tiene ID asociado (caso raro), intentamos por email o devolvemos vacío para seguridad
-            return db.query(models.Lecturer).filter(models.Lecturer.mdh_email == current_user.email).all()
+        lec_id = require_lecturer_link(current_user)
+        lec = (
+            db.query(models.Lecturer)
+            .options(joinedload(models.Lecturer.modules))
+            .filter(models.Lecturer.id == lec_id)
+            .first()
+        )
+        return [lec] if lec else []
 
-    # 🔓 SI ES ADMIN/PM/HoSP: Ve la lista completa
-    return db.query(models.Lecturer).all()
+    raise HTTPException(status_code=403, detail="Not allowed")
 
 
-# ✅ POST: Crear (Solo Admin/PM/HoSP)
+@router.get("/me", response_model=schemas.LecturerResponse)
+def get_my_lecturer_profile(db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):
+    if role_of(current_user) != "lecturer":
+        raise HTTPException(status_code=403, detail="Not allowed")
+    lec_id = require_lecturer_link(current_user)
+    lec = (
+        db.query(models.Lecturer)
+        .options(joinedload(models.Lecturer.modules))
+        .filter(models.Lecturer.id == lec_id)
+        .first()
+    )
+    if not lec:
+        raise HTTPException(status_code=404, detail="Lecturer profile not found")
+    return lec
+
+
+@router.patch("/me", response_model=schemas.LecturerResponse)
+def update_my_lecturer_profile(p: schemas.LecturerSelfUpdate, db: Session = Depends(get_db),
+                               current_user: models.User = Depends(auth.get_current_user)):
+    if role_of(current_user) != "lecturer":
+        raise HTTPException(status_code=403, detail="Not allowed")
+    lec_id = require_lecturer_link(current_user)
+    lec = db.query(models.Lecturer).filter(models.Lecturer.id == lec_id).first()
+    if not lec:
+        raise HTTPException(status_code=404, detail="Lecturer profile not found")
+
+    data = p.model_dump(exclude_unset=True)
+    # hard filter to allowed fields only
+    for k in list(data.keys()):
+        if k not in {"personal_email", "phone"}:
+            data.pop(k, None)
+
+    for k, v in data.items():
+        setattr(lec, k, v)
+
+    db.commit()
+    db.refresh(lec)
+    return lec
+
+
 @router.post("/", response_model=schemas.LecturerResponse)
 def create_lecturer(p: schemas.LecturerCreate, db: Session = Depends(get_db),
                     current_user: models.User = Depends(auth.get_current_user)):
-    r = role_of(current_user)
-    if r in ["student", "lecturer"]:
-        raise HTTPException(status_code=403, detail="Only Admins can create lecturers")
-
-    new_lecturer = models.Lecturer(**p.dict())
-    db.add(new_lecturer)
+    require_admin_or_pm(current_user)
+    row = models.Lecturer(**p.model_dump())
+    db.add(row)
     db.commit()
-    db.refresh(new_lecturer)
-    return new_lecturer
+    db.refresh(row)
+    return row
 
 
-# ✅ PUT: Editar (Híbrido: Profesor solo edita Contacto)
-@router.put("/{lecturer_id}", response_model=schemas.LecturerResponse)
-def update_lecturer(lecturer_id: int, p: schemas.LecturerUpdate, db: Session = Depends(get_db),
+@router.put("/{id}", response_model=schemas.LecturerResponse)
+def update_lecturer(id: int, p: schemas.LecturerUpdate, db: Session = Depends(get_db),
                     current_user: models.User = Depends(auth.get_current_user)):
-    lecturer = db.query(models.Lecturer).filter(models.Lecturer.id == lecturer_id).first()
-    if not lecturer:
+    require_admin_or_pm(current_user)
+    row = db.query(models.Lecturer).filter(models.Lecturer.id == id).first()
+    if not row:
         raise HTTPException(status_code=404, detail="Lecturer not found")
 
-    r = role_of(current_user)
-
-    # Lógica de Permisos
-    if is_admin_or_pm(current_user) or r == "hosp":
-        # Admin/Jefe: Actualiza
-        for key, value in p.dict(exclude_unset=True).items():
-            setattr(lecturer, key, value)
-
-    elif r == "lecturer":
-        # Profesor: Solo actualiza Phone y Personal Email
-        # Verificamos que esté editando SU propio perfil
-        if hasattr(current_user, "lecturer_id") and current_user.lecturer_id != lecturer_id:
-            raise HTTPException(status_code=403, detail="You can only edit your own profile")
-
-        if p.phone is not None:
-            lecturer.phone = p.phone
-        if p.personal_email is not None:
-            lecturer.personal_email = p.personal_email
-
-    else:
-        raise HTTPException(status_code=403, detail="Not authorized to edit lecturers")
+    data = p.model_dump(exclude_unset=True)
+    for k, v in data.items():
+        setattr(row, k, v)
 
     db.commit()
-    db.refresh(lecturer)
-    return lecturer
+    db.refresh(row)
+    return row
 
 
-# ✅ DELETE: Borrar (Solo Admin/PM/HoSP)
-@router.delete("/{lecturer_id}")
-def delete_lecturer(lecturer_id: int, db: Session = Depends(get_db),
+@router.delete("/{id}")
+def delete_lecturer(id: int, db: Session = Depends(get_db),
                     current_user: models.User = Depends(auth.get_current_user)):
-    r = role_of(current_user)
-    if r in ["student", "lecturer"]:
-        raise HTTPException(status_code=403, detail="Only Admins can delete lecturers")
-
-    lecturer = db.query(models.Lecturer).filter(models.Lecturer.id == lecturer_id).first()
-    if lecturer:
-        db.delete(lecturer)
+    require_admin_or_pm(current_user)
+    row = db.query(models.Lecturer).filter(models.Lecturer.id == id).first()
+    if row:
+        db.delete(row)
         db.commit()
     return {"ok": True}
+
+
+# ✅ NEW: list modules assigned to a lecturer
+@router.get("/{id}/modules", response_model=List[schemas.ModuleMini])
+def get_lecturer_modules(
+    id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user),
+):
+    r = role_of(current_user)
+    if not (r == "hosp" or is_admin_or_pm(current_user)):
+        raise HTTPException(status_code=403, detail="Not allowed")
+
+    lec = (
+        db.query(models.Lecturer)
+        .options(joinedload(models.Lecturer.modules))
+        .filter(models.Lecturer.id == id)
+        .first()
+    )
+    if not lec:
+        raise HTTPException(status_code=404, detail="Lecturer not found")
+
+    return lec.modules
+
+
+# ✅ NEW: replace lecturer's module list (set exactly)
+@router.put("/{id}/modules", response_model=schemas.LecturerResponse)
+def set_lecturer_modules(
+    id: int,
+    p: schemas.LecturerModulesUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user),
+):
+    require_admin_or_pm(current_user)
+
+    lec = (
+        db.query(models.Lecturer)
+        .options(joinedload(models.Lecturer.modules))
+        .filter(models.Lecturer.id == id)
+        .first()
+    )
+    if not lec:
+        raise HTTPException(status_code=404, detail="Lecturer not found")
+
+    if not p.module_codes:
+        lec.modules = []
+    else:
+        mods = db.query(models.Module).filter(models.Module.module_code.in_(p.module_codes)).all()
+        found = {m.module_code for m in mods}
+        missing = [c for c in p.module_codes if c not in found]
+        if missing:
+            raise HTTPException(status_code=400, detail=f"Unknown module_code(s): {missing}")
+        lec.modules = mods
+
+    db.commit()
+    db.refresh(lec)
+    return lec
