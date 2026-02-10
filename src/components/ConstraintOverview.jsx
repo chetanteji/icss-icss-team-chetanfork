@@ -34,14 +34,12 @@ const styles = {
 
   badge: { display: "inline-block", padding: "2px 8px", borderRadius: "12px", fontSize: "0.75rem", fontWeight: "600", textTransform: "uppercase" },
 
-  // Checkbox Grid
   checkboxGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))", gap: "10px", marginTop: "8px" },
   checkboxLabel: { display: "flex", alignItems: "center", gap: "6px", fontSize: "0.9rem", cursor: "pointer" }
 };
 
 const formatDate = (isoDate) => isoDate ? isoDate.split("T")[0] : "";
 
-// --- CONFIGURATION ---
 const SCOPE_CATEGORIES = {
     University: [
         { value: "University Open Days", label: "University Open Days" },
@@ -81,7 +79,7 @@ export default function ConstraintOverview() {
   const [constraints, setConstraints] = useState([]);
   const [targets, setTargets] = useState({
     LECTURER: [], GROUP: [], MODULE: [], ROOM: [], PROGRAM: [],
-    UNIVERSITY: [{ id: 0, name: "Entire University" }],
+    UNIVERSITY: [{ id: "0", name: "Entire University" }],
   });
 
   const [roomTypes, setRoomTypes] = useState([]);
@@ -118,7 +116,6 @@ export default function ConstraintOverview() {
     holidayName: "Public Holiday",
     customDuration: "180",
 
-    // Multi-select for open days
     selectedDays: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
   });
 
@@ -129,7 +126,6 @@ export default function ConstraintOverview() {
     if (!modalOpen) return;
 
     const targetList = targets[draft.scope.toUpperCase()] || [];
-    // Ensure strict string comparison to handle "0" vs 0
     const targetObj = targetList.find(t => String(t.id) === String(draft.target_id));
 
     // Naming Logic
@@ -209,27 +205,24 @@ export default function ConstraintOverview() {
 
       setConstraints(cRes || []);
 
-      // 1. EXTRACT ROOM TYPES (Fetch from DB)
       const uniqueRoomTypes = [...new Set((rRes || []).map(r => r.type))].filter(Boolean);
       setRoomTypes(uniqueRoomTypes);
 
-      // 2. HARDCODED LOCATIONS
+      // HARDCODED LOCATIONS
       const staticLocations = ["Berlin", "Düsseldorf", "Munich"];
-
       const campusTargets = staticLocations.map((loc, idx) => ({
-          id: 10000 + idx,
+          id: String(10000 + idx),
           name: `Campus: ${loc}`
       }));
 
       setTargets({
-        LECTURER: (lRes || []).map(x => ({ id: x.id, name: `${x.first_name} ${x.last_name}` })),
-        GROUP: (gRes || []).map(x => ({ id: x.id, name: x.name })),
-        MODULE: (mRes || []).map(x => ({ id: x.module_code, name: x.name })),
-        ROOM: (rRes || []).map(x => ({ id: x.id, name: x.name })),
-        PROGRAM: (pRes || []).map(x => ({ id: x.id, name: x.name })),
-
-        // Combine Global + Static Campuses
-        UNIVERSITY: [{ id: 0, name: "Entire University" }, ...campusTargets]
+        // ALL IDs must be strings now
+        LECTURER: (lRes || []).map(x => ({ id: String(x.id), name: `${x.first_name} ${x.last_name}` })),
+        GROUP: (gRes || []).map(x => ({ id: String(x.id), name: x.name })),
+        MODULE: (mRes || []).map(x => ({ id: String(x.module_code), name: x.name })),
+        ROOM: (rRes || []).map(x => ({ id: String(x.id), name: x.name })),
+        PROGRAM: (pRes || []).map(x => ({ id: String(x.id), name: x.name })),
+        UNIVERSITY: [{ id: "0", name: "Entire University" }, ...campusTargets]
       });
 
       if (uniqueRoomTypes.length > 0) {
@@ -269,7 +262,7 @@ export default function ConstraintOverview() {
     setEditingId(c.id);
     setDraft({
       ...c,
-      target_id: String(c.target_id || "0"), // Convert DB int to string for Select
+      target_id: String(c.target_id || "0"),
       valid_from: formatDate(c.valid_from),
       valid_to: formatDate(c.valid_to)
     });
@@ -280,7 +273,8 @@ export default function ConstraintOverview() {
     try {
       const payload = {
         ...draft,
-        target_id: Number(draft.target_id), // Convert back to Integer for DB
+        // ✅ CRITICAL FIX: Send ID as String, do NOT convert to Number
+        target_id: String(draft.target_id),
         valid_from: draft.valid_from || null,
         valid_to: draft.valid_to || null,
       };
@@ -306,7 +300,6 @@ export default function ConstraintOverview() {
   };
 
   const handleCategoryChange = (newCategory) => {
-    // Removed logic that forced target to "0"
     setDraft({ ...draft, category: newCategory });
   };
 
@@ -324,7 +317,6 @@ export default function ConstraintOverview() {
   };
 
   const renderBuilderInputs = () => {
-    // 1. UNIVERSITY OPEN DAYS (Multi-Select)
     if (draft.category === "University Open Days") {
         return (
             <div>
@@ -356,7 +348,6 @@ export default function ConstraintOverview() {
         );
     }
 
-    // ACADEMIC CALENDAR (Integrated Dates)
     if (draft.category === "Academic Calendar") {
         return (
             <div>
@@ -386,7 +377,6 @@ export default function ConstraintOverview() {
         );
     }
 
-    // HOLIDAY (Integrated Dates)
     if (draft.category === "Holiday") {
         return (
             <div>
@@ -518,7 +508,7 @@ export default function ConstraintOverview() {
             )}
             {constraints.map(c => {
                 const targetName = (targets[c.scope?.toUpperCase()] || []).find(t => String(t.id) === String(c.target_id))?.name || "All";
-                const isGlobal = c.target_id === 0;
+                const isGlobal = String(c.target_id) === "0";
 
                 return (
                 <tr key={c.id}>
@@ -593,7 +583,7 @@ export default function ConstraintOverview() {
                   <label style={styles.label}>Target</label>
                   <select style={styles.select} value={draft.target_id} onChange={e => setDraft({...draft, target_id: e.target.value})}>
                     <option value="0">-- All / Global --</option>
-                    {(targets[draft.scope.toUpperCase()] || []).map(t => <option key={t.id} value={String(t.id)}>{t.name}</option>)}
+                    {(targets[draft.scope.toUpperCase()] || []).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                   </select>
                </div>
              </div>

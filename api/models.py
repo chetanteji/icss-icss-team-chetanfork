@@ -33,7 +33,6 @@ class User(Base):
 
 class Lecturer(Base):
     __tablename__ = "lecturers"
-    # ✅ SQL Schema uses capitalized "ID"
     id = Column("ID", Integer, primary_key=True, index=True)
     first_name = Column(String(200), nullable=False)
     last_name = Column(String(200), nullable=True)
@@ -94,7 +93,6 @@ class Specialization(Base):
 class Group(Base):
     __tablename__ = "groups"
     id = Column(Integer, primary_key=True, index=True)
-    # ✅ SQL Schema uses capitalized "Name" and "Size"
     name = Column("Name", String(100), nullable=False)
     size = Column("Size", Integer, nullable=False)
     description = Column("Brief description", String(250), nullable=True)
@@ -110,7 +108,6 @@ class Room(Base):
     capacity = Column(Integer, nullable=False)
     type = Column(String, nullable=False)
     status = Column(Boolean, default=True, nullable=False)
-    # ✅ SQL Schema uses capitalized "Equipment"
     equipment = Column("Equipment", String, nullable=True)
     location = Column(String(200), nullable=True)
 
@@ -123,7 +120,7 @@ class LecturerAvailability(Base):
 
 
 # -------------------------------------------------------------------
-#  UPDATED SCHEDULER MODELS (Text-First Architecture)
+#  UPDATED SCHEDULER MODELS
 # -------------------------------------------------------------------
 
 class SchedulerConstraint(Base):
@@ -132,15 +129,17 @@ class SchedulerConstraint(Base):
     id = Column(Integer, primary_key=True, index=True)
 
     # Basic Info
-    name = Column(String, nullable=False)  # Internal Title (e.g. "Mohammed Friday Rule")
-    category = Column(String, default="General")  # e.g. "Time Preference", "Room Requirement"
+    name = Column(String, nullable=False)  # Internal Title
+    category = Column(String, default="General")
 
     # The Natural Language Instruction
-    rule_text = Column(Text, nullable=False)  # e.g. "Lecturer 'Mohammed' is not available on Fridays"
+    rule_text = Column(Text, nullable=False)
 
     # Context / Scope
-    scope = Column(String(20), nullable=False)  # "Lecturer", "Group", "Room", etc.
-    target_id = Column(Integer, nullable=True)  # The ID of the specific entity (0 for Global)
+    scope = Column(String(20), nullable=False)
+
+    # ✅ CHANGED: Now String to support Module Codes (e.g., "CS-101")
+    target_id = Column(String, nullable=True, default="0")
 
     # Validity Dates (Optional)
     valid_from = Column(Date, nullable=True)
