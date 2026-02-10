@@ -205,6 +205,12 @@ export default function LecturerOverview() {
   const [selectedModuleCodes, setSelectedModuleCodes] = useState([]);
   const [savingAssign, setSavingAssign] = useState(false);
 
+  const role = (localStorage.getItem("userRole") || "").toLowerCase();
+  const isPM = role === "pm" || role === "admin";
+  const isHoSP = role === "hosp";
+  const isLecturer = role === "lecturer";
+
+
   const [draft, setDraft] = useState({
     firstName: "",
     lastName: "",
@@ -452,9 +458,11 @@ export default function LecturerOverview() {
     <div style={styles.container}>
       <div style={styles.header}>
         <h2 style={styles.title}>Lecturer Overview</h2>
-        <button style={{ ...styles.btn, ...styles.primaryBtn }} onClick={openAdd}>
-          + New Lecturer
-        </button>
+        {isPM && (
+  <button style={{ ...styles.btn, ...styles.primaryBtn }} onClick={openAdd}>
+    + New Lecturer
+  </button>
+)}
       </div>
 
       <input
@@ -512,17 +520,34 @@ export default function LecturerOverview() {
                   )}
                 </td>
 
-                <td style={{ ...styles.td, textAlign: "right", whiteSpace: "nowrap" }}>
-                  <button style={{ ...styles.btn, ...styles.assignBtn }} onClick={() => openAssign(l)}>
-                    Assign Modules
-                  </button>
-                  <button style={{ ...styles.btn, ...styles.editBtn }} onClick={() => openEdit(l)}>
-                    Edit
-                  </button>
-                  <button style={{ ...styles.btn, ...styles.deleteBtn }} onClick={() => remove(l.id)}>
-                    Delete
-                  </button>
-                </td>
+                <td style={{ ...styles.td, textAlign: "right" }}>
+  {isPM && (
+    <>
+      <button style={{ ...styles.btn, ...styles.assignBtn }} onClick={() => openAssign(l)}>
+        Assign Modules
+      </button>
+      <button style={{ ...styles.btn, ...styles.editBtn }} onClick={() => openEdit(l)}>
+        Edit
+      </button>
+      <button style={{ ...styles.btn, ...styles.deleteBtn }} onClick={() => remove(l.id)}>
+        Delete
+      </button>
+    </>
+  )}
+
+  {isHoSP && (
+    <button style={{ ...styles.btn, ...styles.assignBtn }} onClick={() => openAssign(l)}>
+      Assign Modules
+    </button>
+  )}
+
+  {isLecturer && (
+    <span style={{ color: "#94a3b8", fontStyle: "italic" }}>
+      View only
+    </span>
+  )}
+</td>
+
               </tr>
             ))}
           </tbody>
