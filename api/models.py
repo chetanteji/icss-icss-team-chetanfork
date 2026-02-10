@@ -1,4 +1,3 @@
-
 from sqlalchemy import Column, Integer, String, Boolean, Date, ForeignKey, Text, JSON, TIMESTAMP, Table
 from sqlalchemy.orm import relationship, declarative_base
 from sqlalchemy.sql import func
@@ -34,7 +33,6 @@ class User(Base):
 
 class Lecturer(Base):
     __tablename__ = "lecturers"
-    # ✅ SQL Schema uses capitalized "ID"
     id = Column("ID", Integer, primary_key=True, index=True)
     first_name = Column(String(200), nullable=False)
     last_name = Column(String(200), nullable=True)
@@ -95,7 +93,6 @@ class Specialization(Base):
 class Group(Base):
     __tablename__ = "groups"
     id = Column(Integer, primary_key=True, index=True)
-    # ✅ SQL Schema uses capitalized "Name" and "Size"
     name = Column("Name", String(100), nullable=False)
     size = Column("Size", Integer, nullable=False)
     description = Column("Brief description", String(250), nullable=True)
@@ -111,7 +108,6 @@ class Room(Base):
     capacity = Column(Integer, nullable=False)
     type = Column(String, nullable=False)
     status = Column(Boolean, default=True, nullable=False)
-    # ✅ SQL Schema uses capitalized "Equipment"
     equipment = Column("Equipment", String, nullable=True)
     location = Column(String(200), nullable=True)
 
@@ -123,29 +119,35 @@ class LecturerAvailability(Base):
     schedule_data = Column(JSON, default={}, nullable=False)
 
 
-class ConstraintType(Base):
-    __tablename__ = "constraint_types"
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(80), unique=True, nullable=False)
-    active = Column(Boolean, default=True, nullable=False)
-    constraint_level = Column(String, nullable=True)
-    constraint_format = Column(String, nullable=True)
-    valid_from = Column(Date, nullable=True)
-    valid_to = Column(Date, nullable=True)
-    constraint_rule = Column(Text, nullable=True)
-    constraint_target = Column(String, nullable=True)
-
+# -------------------------------------------------------------------
+#  UPDATED SCHEDULER MODELS
+# -------------------------------------------------------------------
 
 class SchedulerConstraint(Base):
     __tablename__ = "scheduler_constraints"
+
     id = Column(Integer, primary_key=True, index=True)
-    constraint_type_id = Column(Integer, ForeignKey("constraint_types.id"), nullable=False)
-    hardness = Column(String(10), nullable=False)
-    weight = Column(Integer, nullable=True)
+
+    # Basic Info
+    name = Column(String, nullable=False)  # Internal Title
+    category = Column(String, default="General")
+
+    # The Natural Language Instruction
+    rule_text = Column(Text, nullable=False)
+
+    # Context / Scope
     scope = Column(String(20), nullable=False)
-    target_id = Column(Integer, nullable=True)
-    config = Column(JSON, default={}, nullable=False)
+
+    # ✅ CHANGED: Now String to support Module Codes (e.g., "CS-101")
+    target_id = Column(String, nullable=True, default="0")
+
+    # Validity Dates (Optional)
+    valid_from = Column(Date, nullable=True)
+    valid_to = Column(Date, nullable=True)
+
+    # Status
     is_enabled = Column(Boolean, default=True, nullable=False)
-    notes = Column(Text, nullable=True)
+
+    # Timestamps
     created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now(), nullable=False)

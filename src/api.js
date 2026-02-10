@@ -76,7 +76,7 @@ const api = {
   updateLecturer(id, payload) { return request(`/lecturers/${id}`, { method: "PUT", body: JSON.stringify(payload) }); },
   deleteLecturer(id) { return request(`/lecturers/${id}`, { method: "DELETE" }); },
 
-  // ✅ NEW: LECTURER MODULE ASSIGNMENT
+  // ✅ LECTURER MODULE ASSIGNMENT
   getLecturerModules(id) {
     return request(`/lecturers/${id}/modules`);
   },
@@ -99,10 +99,8 @@ const api = {
   updateRoom(id, payload) { return request(`/rooms/${id}`, { method: "PUT", body: JSON.stringify(payload) }); },
   deleteRoom(id) { return request(`/rooms/${id}`, { method: "DELETE" }); },
 
-  // ---------- CONSTRAINT TYPES ----------
-  getConstraintTypes() { return request("/constraint-types/"); },
-
   // ---------- SCHEDULER CONSTRAINTS ----------
+
   getConstraints() { return request("/scheduler-constraints/"); },
   createConstraint(payload) { return request("/scheduler-constraints/", { method: "POST", body: JSON.stringify(payload) }); },
   updateConstraint(id, payload) { return request(`/scheduler-constraints/${id}`, { method: "PUT", body: JSON.stringify(payload) }); },
