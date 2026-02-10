@@ -4,9 +4,7 @@ import api from "../api";
 const role = (localStorage.getItem("userRole") || "").toLowerCase();
 
 const isPM = role === "pm" || role === "admin";
-const isHoSP = role === "hosp";
-const isLecturer = role === "lecturer";
-const isStudent = role === "student";
+
 
 // --- CONSTANTS ---
 const DEGREE_OPTIONS = {
