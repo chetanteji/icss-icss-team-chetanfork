@@ -87,7 +87,7 @@ const styles = {
   helpText: { fontSize: "0.85rem", color: "#64748b", marginTop: "6px", lineHeight: 1.4 }
 };
 
-const role = (localStorage.getItem("userRole") || "").toLowerCase();
+
 
 
 
