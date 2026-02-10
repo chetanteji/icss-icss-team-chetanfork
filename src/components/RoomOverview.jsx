@@ -134,7 +134,9 @@
       const [customTypes, setCustomTypes] = useState([]);
       const campuses = useMemo(() => ["Berlin", "Dusseldorf", "Munich"], []);
       const role = (localStorage.getItem("userRole") || "").toLowerCase();
-      const isReadOnly = role === "lecturer" || role === "student";
+      const isReadOnly = role === "lecturer" || role === "student" || role === "hosp";
+      const isLecturer = role === "lecturer";
+
 
       const [draft, setDraft] = useState({
         name: "",
@@ -382,7 +384,7 @@
                       </span>
                     </td>
                     <td style={{...styles.td, textAlign:'right', whiteSpace:'nowrap'}}>
-  {!isReadOnly && (
+  {!isReadOnly ? (
     <>
       <button
         style={{...styles.btn, ...styles.editBtn}}
@@ -398,8 +400,13 @@
         Delete
       </button>
     </>
-  )}
+  ) : isLecturer ? (
+    <span style={{ fontSize: "0.85rem", color: "#94a3b8", fontStyle: "italic" }}>
+      View only
+    </span>
+  ) : null}
 </td>
+
 
                   </tr>
                 ))}

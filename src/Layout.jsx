@@ -148,7 +148,8 @@ if (["lecturer", "student"].includes(normalizedBackendRole)) {
           {isPM && (
   <>
     <div className="nav-section-title">Planning Logic</div>
-    <NavLink id="constraints" label="Constraints & Rules" rolesAllowed={["admin", "pm"]} />
+    <NavLink id="constraints" label="Constraints & Rules" rolesAllowed={["admin", "pm", "hosp"]} />
+
     <NavLink id="availabilities" label="Availability" rolesAllowed={["admin", "pm", "lecturer"]} />
   </>
 )}

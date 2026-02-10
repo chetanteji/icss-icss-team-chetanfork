@@ -273,8 +273,11 @@ export default function LecturerOverview() {
     loadAll();
   }, []);
 
+
+
   function openAdd() {
-    setEditingId(null);
+    if (isLecturer || isHoSP) return;
+      setEditingId(null);
     setDraft({
       firstName: "",
       lastName: "",
@@ -287,10 +290,12 @@ export default function LecturerOverview() {
       teachingLoad: "",
     });
     setFormMode("add");
+
   }
 
   function openEdit(row) {
-    setEditingId(row.id);
+     if (isLecturer || isHoSP) return;
+      setEditingId(row.id);
     setDraft({
       firstName: row.firstName || "",
       lastName: row.lastName || "",
@@ -355,7 +360,8 @@ export default function LecturerOverview() {
   }
 
   async function remove(id) {
-    if (!window.confirm("Are you sure you want to delete this lecturer?")) return;
+    if (!isPM) return;
+      if (!window.confirm("Are you sure you want to delete this lecturer?")) return;
     try {
       await api.deleteLecturer(id);
       await loadAll();
@@ -365,7 +371,8 @@ export default function LecturerOverview() {
   }
 
   async function save() {
-    if (!draft.firstName.trim() || !draft.title.trim() || !draft.mdhEmail.trim()) {
+        if (!isPM) return;
+      if (!draft.firstName.trim() || !draft.title.trim() || !draft.mdhEmail.trim()) {
       return alert("First Name, Title, and MDH Email are required.");
     }
 

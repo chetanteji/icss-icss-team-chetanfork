@@ -89,9 +89,12 @@ export default function ProgramOverview({ initialData, clearInitialData, current
   const [specializations, setSpecializations] = useState([]);
   const [modules, setModules] = useState([]);
 
+
   // ✅ ROLE-BASED PERMISSIONS (Lowercase FIX)
   const role = currentUserRole?.toLowerCase();
   const isPM = ["admin", "pm"].includes(role);
+  const isHoSP = role === "hosp";
+
 
   // Helper function to determine if the user can manage a specific program
   const canManageProgram = (program) => {
@@ -223,9 +226,15 @@ function ProgramList({ programs, lecturers, onSelect, refresh, isPM, canManagePr
                 onChange={e => setSearchQuery(e.target.value)}
             />
         </div>
-        {isPM && (
-            <button style={{ ...styles.btn, ...styles.primaryBtn }} onClick={() => setShowCreate(true)}>+ New Program</button>
-        )}
+        {(isPM || role === "hosp") && (
+  <button
+    style={{ ...styles.btn, ...styles.primaryBtn }}
+    onClick={() => setShowCreate(true)}
+  >
+    + New Program
+  </button>
+)}
+
       </div>
 
       <div style={styles.listHeader}>
@@ -456,9 +465,15 @@ function ProgramWorkspace({ program, lecturers, specializations, modules, onBack
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
         <button style={{ ...styles.btn, background:"transparent", color:"#64748b", padding:0 }} onClick={onBack}>← Back to List</button>
-        {canEdit && (
-            <button style={{ ...styles.btn, ...styles.dangerBtn }} onClick={() => setShowDeleteModal(true)}>Delete Program</button>
-        )}
+        {isPM && (
+  <button
+    style={{ ...styles.btn, ...styles.dangerBtn }}
+    onClick={() => setShowDeleteModal(true)}
+  >
+    Delete Program
+  </button>
+)}
+
       </div>
 
       <div style={{ marginBottom: "20px" }}>
