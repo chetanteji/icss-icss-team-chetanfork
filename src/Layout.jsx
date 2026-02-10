@@ -8,9 +8,11 @@ const Layout = ({ activeTab, setActiveTab, children, currentUserRole, setCurrent
 
   // ✅ Variable para saber si es estudiante (y ocultar cosas grandes)
 
-  const isLecturer = role === "lecturer";
-  const isHoSP = role === "hosp";
-  const isPM = role === "pm" || role === "admin";
+  const isStudent = role === "student";
+const isLecturer = role === "lecturer";
+const isHoSP = role === "hosp";
+const isPM = role === "pm" || role === "admin";
+
 
 
   const NavLink = ({ id, icon, label, rolesAllowed = [] }) => {
@@ -89,70 +91,44 @@ if (["lecturer", "student"].includes(normalizedBackendRole)) {
 
             <div className="sidebar-nav">
 
-  {/* ===== CURRICULUM (NOT FOR STUDENTS) ===== */}
-  {(isPM || isHoSP || isLecturer) && (
+  {!isStudent && (
   <>
-    <div className="nav-section-title">Curriculum</div>
-    <NavLink
-      id="programs"
-      label="Study Programs"
-      rolesAllowed={["admin", "pm", "hosp", "lecturer"]}
-    />
+    {/* Curriculum */}
+    {(isPM || isHoSP || isLecturer) && (
+      <>
+        <div className="nav-section-title">Curriculum</div>
+        <NavLink id="programs" label="Study Programs" rolesAllowed={["admin", "pm", "hosp", "lecturer"]} />
+      </>
+    )}
+
+    {/* People & Groups */}
+    {(isPM || isHoSP || isLecturer) && (
+      <>
+        <div className="nav-section-title">People & Groups</div>
+        <NavLink id="lecturers" label="Lecturers" rolesAllowed={["admin", "pm", "hosp"]} />
+        <NavLink id="groups" label="Student Groups" rolesAllowed={["admin", "pm", "hosp", "lecturer"]} />
+      </>
+    )}
+
+    {/* Facilities */}
+    {(isPM || isHoSP || isLecturer) && (
+      <>
+        <div className="nav-section-title">Facilities</div>
+        <NavLink id="rooms" label="Rooms" rolesAllowed={["admin", "pm", "hosp", "lecturer"]} />
+      </>
+    )}
+
+    {/* Planning Logic */}
+    {(isPM || isHoSP || isLecturer) && (
+      <>
+        <div className="nav-section-title">Planning Logic</div>
+        <NavLink id="constraints" label="Constraints & Rules" rolesAllowed={["admin", "pm", "hosp"]} />
+        <NavLink id="availabilities" label="Availability" rolesAllowed={["admin", "pm", "lecturer"]} />
+      </>
+    )}
   </>
 )}
 
-
-  {/* ===== MODULES (VISIBLE TO STUDENT) ===== */}
- <NavLink
-  id="modules"
-  label="Modules"
-  rolesAllowed={["admin", "pm", "hosp", "lecturer", "student"]}
-/>
-
-
-  {/* ===== PEOPLE & GROUPS (NOT FOR STUDENTS) ===== */}
-  {(isPM || isHoSP || isLecturer) && (
-  <>
-    <div className="nav-section-title">People & Groups</div>
-
-    <NavLink
-      id="lecturers"
-      label="Lecturers"
-      rolesAllowed={["admin", "pm", "hosp", "lecturer"]}
-    />
-
-    <NavLink
-      id="groups"
-      label="Student Groups"
-      rolesAllowed={["admin", "pm", "hosp", "lecturer"]}
-    />
-  </>
-)}
-
-
-
-          {/* ✅ FACILITIES: Ocultamos toda la sección si es Estudiante */}
-          {(isPM || isHoSP || isLecturer) && (
-  <>
-    <div className="nav-section-title">Facilities</div>
-    <NavLink
-      id="rooms"
-      label="Rooms"
-      rolesAllowed={["admin", "pm", "hosp", "lecturer"]}
-    />
-  </>
-)}
-
-
-          {/* ✅ PLANNING LOGIC: Ocultamos toda la sección si es Estudiante */}
-          {isPM && (
-  <>
-    <div className="nav-section-title">Planning Logic</div>
-    <NavLink id="constraints" label="Constraints & Rules" rolesAllowed={["admin", "pm", "hosp"]} />
-
-    <NavLink id="availabilities" label="Availability" rolesAllowed={["admin", "pm", "lecturer"]} />
-  </>
-)}
 
         </div>
 
