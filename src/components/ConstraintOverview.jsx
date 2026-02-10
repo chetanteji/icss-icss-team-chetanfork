@@ -32,7 +32,11 @@ const styles = {
   generatedBox: { background: "#eff6ff", border: "1px solid #dbeafe", padding: "16px", borderRadius: "8px", marginTop: "4px" },
   generatedText: { width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #bfdbfe", fontSize: "0.95rem", fontFamily: "inherit", background: "white", minHeight: "80px", resize: "vertical", color: "#1e3a8a" },
 
-  badge: { display: "inline-block", padding: "2px 8px", borderRadius: "12px", fontSize: "0.75rem", fontWeight: "600", textTransform: "uppercase" }
+  badge: { display: "inline-block", padding: "2px 8px", borderRadius: "12px", fontSize: "0.75rem", fontWeight: "600", textTransform: "uppercase" },
+
+  // Checkbox Grid
+  checkboxGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))", gap: "10px", marginTop: "8px" },
+  checkboxLabel: { display: "flex", alignItems: "center", gap: "6px", fontSize: "0.9rem", cursor: "pointer" }
 };
 
 const formatDate = (isoDate) => isoDate ? isoDate.split("T")[0] : "";
@@ -40,10 +44,10 @@ const formatDate = (isoDate) => isoDate ? isoDate.split("T")[0] : "";
 // --- CONFIGURATION ---
 const SCOPE_CATEGORIES = {
     University: [
+        { value: "University Open Days", label: "University Open Days" },
         { value: "University Policy", label: "University Policy (Opening Hours)" },
-        { value: "Unavailable Days", label: "University Closed (Open Days)" }, // Added for "open days"
         { value: "Academic Calendar", label: "Academic Calendar (Semester Dates)" },
-        { value: "Holiday", label: "Holiday / Break" }, // Added for "lecture-free days"
+        { value: "Holiday", label: "Holiday / Break" },
         { value: "Time Definition", label: "Time Definition (Lecture Slots)" },
         { value: "Custom", label: "Custom" }
     ],
@@ -53,15 +57,12 @@ const SCOPE_CATEGORIES = {
         { value: "Custom", label: "Custom" }
     ],
     Module: [
-        { value: "Delivery Mode", label: "Delivery Mode (Online/Hybrid)" }, // Added
-        { value: "Duration Override", label: "Duration Override" }, // Added
+        { value: "Delivery Mode", label: "Delivery Mode" },
+        { value: "Duration", label: "Duration" },
         { value: "Room Requirement", label: "Room Requirement" },
-        { value: "Unavailable Days", label: "Time Preference" },
         { value: "Custom", label: "Custom" }
     ],
     Group: [
-        { value: "Gap Limit", label: "Gap Limit" },
-        { value: "Unavailable Days", label: "Time Preference" },
         { value: "Custom", label: "Custom" }
     ],
     Room: [
@@ -69,10 +70,12 @@ const SCOPE_CATEGORIES = {
          { value: "Custom", label: "Custom" }
     ],
     Program: [
-        { value: "Delivery Mode", label: "Delivery Mode (Online/Hybrid)" }, // Added
+        { value: "Delivery Mode", label: "Delivery Mode" },
         { value: "Custom", label: "Custom" }
     ]
 };
+
+const DAYS_OF_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 export default function ConstraintOverview() {
   const [constraints, setConstraints] = useState([]);
@@ -111,10 +114,12 @@ export default function ConstraintOverview() {
     semesterSeason: "Winter",
     semesterYear: new Date().getFullYear(),
 
-    // New Fields
     deliveryMode: "Onsite",
-    holidayName: "Christmas Break",
-    customDuration: "180"
+    holidayName: "Public Holiday",
+    customDuration: "180",
+
+    // Multi-select for open days
+    selectedDays: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
   });
 
   useEffect(() => { loadData(); }, []);
@@ -136,15 +141,10 @@ export default function ConstraintOverview() {
     let generatedText = "";
 
     switch (draft.category) {
-      // Existing
-      case "Unavailable Days":
-        generatedText = `${entity} is unavailable/closed on ${builder.day}s.`;
-        break;
-      case "Room Requirement":
-        generatedText = `${entity} requires a room of type '${builder.roomType}'.`;
-        break;
-      case "Gap Limit":
-        generatedText = `${entity} must have a gap of ${builder.gap} between classes.`;
+      // University
+      case "University Open Days":
+        const daysText = builder.selectedDays.length > 0 ? builder.selectedDays.join(", ") : "No Days";
+        generatedText = `The University is open on: ${daysText}.`;
         break;
       case "University Policy":
         generatedText = `The University is open from ${builder.startTime} to ${builder.endTime}.`;
@@ -152,22 +152,31 @@ export default function ConstraintOverview() {
       case "Academic Calendar":
         generatedText = `${builder.semesterSeason} Semester ${builder.semesterYear} starts on ${draft.valid_from || '[Date]'} and ends on ${draft.valid_to || '[Date]'}.`;
         break;
+      case "Holiday":
+        generatedText = `Holiday '${builder.holidayName}' is from ${draft.valid_from || '[Date]'} to ${draft.valid_to || '[Date]'}.`;
+        break;
       case "Time Definition":
         generatedText = `Standard lecture slots are ${builder.slotDuration} minutes long with a ${builder.breakDuration} minute break.`;
         break;
+
+      // Lecturer
+      case "Unavailable Days":
+        generatedText = `${entity} is unavailable on ${builder.day}s.`;
+        break;
       case "Legal Requirement":
-        generatedText = `Lecturers must not exceed ${builder.workloadLimit} teaching units per week.`;
+        // Uses the specific entity name now (e.g. "Lecturer 'Smith'")
+        generatedText = `${entity} must not exceed ${builder.workloadLimit} teaching units per week.`;
         break;
 
-      // NEW CASES
+      // Module / Program
       case "Delivery Mode":
         generatedText = `${entity} must be conducted ${builder.deliveryMode}.`;
         break;
-      case "Holiday":
-        generatedText = `No lectures allowed during '${builder.holidayName}' (from ${draft.valid_from || '[Date]'} to ${draft.valid_to || '[Date]'}).`;
-        break;
-      case "Duration Override":
+      case "Duration":
         generatedText = `${entity} has a specific duration of ${builder.customDuration} minutes.`;
+        break;
+      case "Room Requirement":
+        generatedText = `${entity} requires a room of type '${builder.roomType}'.`;
         break;
 
       default:
@@ -233,7 +242,8 @@ export default function ConstraintOverview() {
         workloadLimit: "18",
         deliveryMode: "Onsite",
         holidayName: "Public Holiday",
-        customDuration: "180"
+        customDuration: "180",
+        selectedDays: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
     }));
     setModalOpen(true);
   }
@@ -286,7 +296,42 @@ export default function ConstraintOverview() {
     setDraft({ ...draft, category: newCategory, target_id: newTarget });
   };
 
+  const toggleDay = (day) => {
+      setBuilder(prev => {
+          const days = prev.selectedDays.includes(day)
+            ? prev.selectedDays.filter(d => d !== day)
+            : [...prev.selectedDays, day];
+
+          // Sort days to match week order
+          const sorter = { "Monday": 1, "Tuesday": 2, "Wednesday": 3, "Thursday": 4, "Friday": 5, "Saturday": 6, "Sunday": 7 };
+          days.sort((a,b) => sorter[a] - sorter[b]);
+
+          return { ...prev, selectedDays: days };
+      });
+  };
+
   const renderBuilderInputs = () => {
+    // 1. UNIVERSITY OPEN DAYS (Multi-Select)
+    if (draft.category === "University Open Days") {
+        return (
+            <div>
+                <label style={{...styles.label, marginBottom:'10px'}}>Select Open Days:</label>
+                <div style={styles.checkboxGrid}>
+                    {DAYS_OF_WEEK.map(day => (
+                        <label key={day} style={styles.checkboxLabel}>
+                            <input
+                                type="checkbox"
+                                checked={builder.selectedDays.includes(day)}
+                                onChange={() => toggleDay(day)}
+                            />
+                            {day}
+                        </label>
+                    ))}
+                </div>
+            </div>
+        );
+    }
+
     if (draft.category === "University Policy") {
         return (
             <div style={{display:'flex', gap:'12px', alignItems:'center'}}>
@@ -297,32 +342,59 @@ export default function ConstraintOverview() {
             </div>
         );
     }
+
+    // ACADEMIC CALENDAR (Integrated Dates)
     if (draft.category === "Academic Calendar") {
         return (
-            <div style={{display:'flex', gap:'12px', alignItems:'center'}}>
-                <select style={{...styles.select, width:'auto'}} value={builder.semesterSeason} onChange={e => setBuilder({...builder, semesterSeason: e.target.value})}>
-                    <option value="Winter">Winter</option>
-                    <option value="Summer">Summer</option>
-                </select>
-                <select style={{...styles.select, width:'auto'}} value={builder.semesterYear} onChange={e => setBuilder({...builder, semesterYear: e.target.value})}>
-                    {[0,1,2,3].map(i => {
-                        const y = new Date().getFullYear() + i;
-                        return <option key={y} value={y}>{y}</option>;
-                    })}
-                </select>
-                <span style={{fontSize:'0.85rem', color:'#64748b', fontStyle:'italic'}}>(Set actual start/end dates below)</span>
+            <div>
+                <div style={{display:'flex', gap:'12px', alignItems:'center', marginBottom:'10px'}}>
+                    <select style={{...styles.select, width:'auto'}} value={builder.semesterSeason} onChange={e => setBuilder({...builder, semesterSeason: e.target.value})}>
+                        <option value="Winter">Winter</option>
+                        <option value="Summer">Summer</option>
+                    </select>
+                    <select style={{...styles.select, width:'auto'}} value={builder.semesterYear} onChange={e => setBuilder({...builder, semesterYear: e.target.value})}>
+                        {[0,1,2,3].map(i => {
+                            const y = new Date().getFullYear() + i;
+                            return <option key={y} value={y}>{y}</option>;
+                        })}
+                    </select>
+                </div>
+                <div style={styles.formRow}>
+                   <div style={{flex:1}}>
+                     <label style={styles.label}>Start Date</label>
+                     <input type="date" style={styles.input} value={draft.valid_from} onChange={e => setDraft({...draft, valid_from: e.target.value})} />
+                   </div>
+                   <div style={{flex:1}}>
+                     <label style={styles.label}>End Date</label>
+                     <input type="date" style={styles.input} value={draft.valid_to} onChange={e => setDraft({...draft, valid_to: e.target.value})} />
+                   </div>
+                </div>
             </div>
         );
     }
-    // NEW: Holidays / Breaks
+
+    // HOLIDAY (Integrated Dates)
     if (draft.category === "Holiday") {
         return (
-            <div style={{display:'flex', gap:'12px', alignItems:'center'}}>
-                <input style={{...styles.input, flex:1}} placeholder="Holiday Name (e.g. Christmas)" value={builder.holidayName} onChange={e => setBuilder({...builder, holidayName: e.target.value})} />
-                <span style={{fontSize:'0.85rem', color:'#64748b', fontStyle:'italic'}}>(Set dates below)</span>
+            <div>
+                <div style={{marginBottom:'10px'}}>
+                    <label style={styles.label}>Holiday Name</label>
+                    <input style={styles.input} placeholder="e.g. Christmas Break" value={builder.holidayName} onChange={e => setBuilder({...builder, holidayName: e.target.value})} />
+                </div>
+                <div style={styles.formRow}>
+                   <div style={{flex:1}}>
+                     <label style={styles.label}>Start Date</label>
+                     <input type="date" style={styles.input} value={draft.valid_from} onChange={e => setDraft({...draft, valid_from: e.target.value})} />
+                   </div>
+                   <div style={{flex:1}}>
+                     <label style={styles.label}>End Date</label>
+                     <input type="date" style={styles.input} value={draft.valid_to} onChange={e => setDraft({...draft, valid_to: e.target.value})} />
+                   </div>
+                </div>
             </div>
         );
     }
+
     if (draft.category === "Time Definition") {
         return (
             <div style={{display:'flex', gap:'15px', alignItems:'center', flexWrap:'wrap'}}>
@@ -354,7 +426,6 @@ export default function ConstraintOverview() {
             </div>
         );
     }
-    // NEW: Delivery Mode (Online/Hybrid)
     if (draft.category === "Delivery Mode") {
         return (
             <div style={{display:'flex', gap:'12px', alignItems:'center'}}>
@@ -367,8 +438,7 @@ export default function ConstraintOverview() {
             </div>
         );
     }
-    // NEW: Duration Override
-    if (draft.category === "Duration Override") {
+    if (draft.category === "Duration") {
         return (
             <div style={{display:'flex', gap:'12px', alignItems:'center'}}>
                 <span>Specific Duration:</span>
@@ -381,7 +451,7 @@ export default function ConstraintOverview() {
         return (
             <div style={{display:'flex', gap:'12px', alignItems:'center'}}>
                 <select style={{...styles.select, width:'auto'}} value={builder.day} onChange={e => setBuilder({...builder, day: e.target.value})}>
-                    {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map(d => <option key={d} value={d}>{d}</option>)}
+                    {DAYS_OF_WEEK.map(d => <option key={d} value={d}>{d}</option>)}
                 </select>
                 <span>is unavailable / closed.</span>
             </div>
@@ -406,6 +476,7 @@ export default function ConstraintOverview() {
   };
 
   const currentCategories = SCOPE_CATEGORIES[draft.scope] || SCOPE_CATEGORIES["University"];
+  const showGenericValidity = !["Academic Calendar", "Holiday"].includes(draft.category);
 
   return (
     <div style={styles.container}>
@@ -546,20 +617,22 @@ export default function ConstraintOverview() {
                 </div>
              </div>
 
-             {/* 5. VALIDITY (MOVED TO BOTTOM) */}
-             <div style={{marginTop:'20px', borderTop:'1px solid #e2e8f0', paddingTop:'15px'}}>
-                 <div style={styles.sectionLabel}>Validity Window (Optional)</div>
-                 <div style={styles.formRow}>
-                   <div style={{flex:1}}>
-                     <label style={styles.label}>Valid From</label>
-                     <input type="date" style={styles.input} value={draft.valid_from} onChange={e => setDraft({...draft, valid_from: e.target.value})} />
-                   </div>
-                   <div style={{flex:1}}>
-                     <label style={styles.label}>Valid To</label>
-                     <input type="date" style={styles.input} value={draft.valid_to} onChange={e => setDraft({...draft, valid_to: e.target.value})} />
-                   </div>
+             {/* 5. GENERIC VALIDITY (Only shown if NOT Academic Calendar/Holiday) */}
+             {showGenericValidity && (
+                 <div style={{marginTop:'20px', borderTop:'1px solid #e2e8f0', paddingTop:'15px'}}>
+                     <div style={styles.sectionLabel}>Validity Window (Optional)</div>
+                     <div style={styles.formRow}>
+                       <div style={{flex:1}}>
+                         <label style={styles.label}>Valid From</label>
+                         <input type="date" style={styles.input} value={draft.valid_from} onChange={e => setDraft({...draft, valid_from: e.target.value})} />
+                       </div>
+                       <div style={{flex:1}}>
+                         <label style={styles.label}>Valid To</label>
+                         <input type="date" style={styles.input} value={draft.valid_to} onChange={e => setDraft({...draft, valid_to: e.target.value})} />
+                       </div>
+                     </div>
                  </div>
-             </div>
+             )}
 
              <div style={{display:'flex', justifyContent:'flex-end', gap:'12px', marginTop:'24px'}}>
                <button style={{...styles.btn, ...styles.secondaryBtn}} onClick={() => setModalOpen(false)}>Cancel</button>
