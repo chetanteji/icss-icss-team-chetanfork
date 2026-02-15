@@ -17,7 +17,9 @@ from .routers.groups import router as groups_router
 from .routers.rooms import router as rooms_router
 from .routers.constraints import router as constraints_router
 from .routers.availabilities import router as availabilities_router
-from .routers.semesters import router as semesters_router  # ✅ NEW
+from .routers.semesters import router as semesters_router
+# ✅ AGREGAMOS ESTA LÍNEA:
+from .routers.offered_modules import router as offered_modules_router
 
 # Crear tablas
 try:
@@ -60,3 +62,5 @@ app.include_router(rooms_router)
 app.include_router(constraints_router)
 app.include_router(availabilities_router)
 app.include_router(semesters_router)
+# ✅ Y AGREGAMOS ESTA LÍNEA AL FINAL:
+app.include_router(offered_modules_router)
