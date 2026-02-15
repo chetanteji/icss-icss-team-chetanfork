@@ -19,7 +19,13 @@ async function request(path, options = {}) {
     headers["Authorization"] = `Bearer ${token}`;
   }
 
+  // FIX: Eliminamos el body si es GET (fetch no permite body en GET)
+  if (options.method === 'GET' || !options.method) {
+    delete options.body;
+  }
+
   const res = await fetch(url, { ...options, headers });
+
   const text = await res.text().catch(() => "");
 
   if (!res.ok) {
@@ -28,6 +34,7 @@ async function request(path, options = {}) {
       localStorage.removeItem("userRole");
       window.location.href = "/";
     }
+
     try {
       const errJson = JSON.parse(text);
       throw new Error(errJson.detail || `${res.status} ${res.statusText}`);
@@ -42,7 +49,12 @@ async function request(path, options = {}) {
 
 const api = {
   // --- AUTH ---
-  login(email, password) { return request("/auth/login", { method: "POST", body: JSON.stringify({ email, password }) }); },
+  login(email, password) {
+    return request("/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password })
+    });
+  },
 
   // ---------- PROGRAMS ----------
   getPrograms() { return request("/study-programs/"); },
@@ -68,8 +80,16 @@ const api = {
   updateLecturer(id, payload) { return request(`/lecturers/${id}`, { method: "PUT", body: JSON.stringify(payload) }); },
   deleteLecturer(id) { return request(`/lecturers/${id}`, { method: "DELETE" }); },
 
-  getLecturerModules(id) { return request(`/lecturers/${id}/modules`); },
-  setLecturerModules(id, module_codes) { return request(`/lecturers/${id}/modules`, { method: "PUT", body: JSON.stringify({ module_codes }) }); },
+  // LECTURER MODULE ASSIGNMENT
+  getLecturerModules(id) {
+    return request(`/lecturers/${id}/modules`);
+  },
+  setLecturerModules(id, module_codes) {
+    return request(`/lecturers/${id}/modules`, {
+      method: "PUT",
+      body: JSON.stringify({ module_codes })
+    });
+  },
 
   // ---------- GROUPS ----------
   getGroups() { return request("/groups/"); },
@@ -94,10 +114,22 @@ const api = {
   updateLecturerWeek(payload) { return request("/availabilities/update", { method: "POST", body: JSON.stringify(payload) }); },
   deleteLecturerAvailability(lecturerId) { return request(`/availabilities/lecturer/${lecturerId}`, { method: "DELETE" }); },
 
-  //semesters
+  // ✅ SEMESTERS (DEL EQUIPO)
   getSemesters() { return request("/semesters/"); },
   createSemester(payload) { return request("/semesters/", { method: "POST", body: JSON.stringify(payload) }); },
   deleteSemester(id) { return request(`/semesters/${id}`, { method: "DELETE" }); },
+
+  // ✅ OFFERED MODULES (ESTA ES LA PARTE QUE TE FALTABA O ESTABA DAÑADA)
+  getOfferedModules(semester) {
+    const query = semester ? `?semester=${encodeURIComponent(semester)}` : "";
+    return request(`/offered-modules/${query}`);
+  },
+  createOfferedModule(payload) {
+    return request("/offered-modules/", { method: "POST", body: JSON.stringify(payload) });
+  },
+  deleteOfferedModule(id) {
+    return request(`/offered-modules/${id}`, { method: "DELETE" });
+  },
 };
 
 export default api;
