@@ -143,20 +143,19 @@ class Semester(Base):
     end_date = Column(Date, nullable=False)
 
 
-# ✅ TU CÓDIGO RESTAURADO
+
 class OfferedModule(Base):
     __tablename__ = "offered_modules"
 
     id = Column(Integer, primary_key=True, index=True)
 
-    # Vinculamos al Código de Materia
+
     module_code = Column(String, ForeignKey("modules.module_code", ondelete="CASCADE"), nullable=False)
 
-    # Vinculamos al Profesor
+
     lecturer_id = Column(Integer, ForeignKey("lecturers.ID"), nullable=True)
 
-    # 🔥 EL TRUCO: Guardamos el NOMBRE del semestre (ej: "Winter 2024")
-    # Esto permite que tu Router siga funcionando sin cambios complejos.
+
     semester = Column(String, nullable=False)
 
     status = Column(String, default="Confirmed")
@@ -164,3 +163,27 @@ class OfferedModule(Base):
     # Relaciones para leer nombres bonitos
     module = relationship("Module")
     lecturer = relationship("Lecturer")
+
+
+class ScheduleEntry(Base):
+    __tablename__ = "schedule_entries"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+
+    offered_module_id = Column(Integer, ForeignKey("offered_modules.id", ondelete="CASCADE"), nullable=False)
+
+
+    room_id = Column(Integer, ForeignKey("rooms.id"), nullable=True)
+
+
+    day_of_week = Column(String, nullable=False)  # "Monday", "Tuesday"...
+    start_time = Column(String, nullable=False)  # "08:00"
+    end_time = Column(String, nullable=False)  # "10:00"
+
+
+    semester = Column(String, nullable=False)
+
+    
+    offered_module = relationship("OfferedModule")
+    room = relationship("Room")

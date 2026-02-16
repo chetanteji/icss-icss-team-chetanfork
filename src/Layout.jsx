@@ -8,7 +8,7 @@ const Layout = ({ activeTab, setActiveTab, children, currentUserRole, setCurrent
 
   const NavLink = ({ id, icon, label, rolesAllowed = [] }) => {
     const normalizedAllowed = rolesAllowed.map(r => r.toLowerCase());
-    // Si hay roles definidos y el rol actual no está en la lista, no mostramos el botón
+
     if (normalizedAllowed.length > 0 && !normalizedAllowed.includes(role)) return null;
 
     return (
@@ -26,7 +26,6 @@ const Layout = ({ activeTab, setActiveTab, children, currentUserRole, setCurrent
     let email = "";
     const password = "password";
 
-    // Mapeo simple para login rápido de prueba
     switch (newRole) {
       case "pm": email = "pm@icss.com"; break;
       case "hosp": email = "hosp@icss.com"; break;
@@ -46,7 +45,6 @@ const Layout = ({ activeTab, setActiveTab, children, currentUserRole, setCurrent
       else localStorage.removeItem("lecturerId");
 
       setCurrentUserRole(normalizedBackendRole);
-      // Disparar evento por si otros componentes escuchan cambios
       window.dispatchEvent(new Event("role-changed"));
 
     } catch (err) {
@@ -54,7 +52,6 @@ const Layout = ({ activeTab, setActiveTab, children, currentUserRole, setCurrent
     }
   };
 
-  // Valor para el dropdown visual
   let dropdownVal = "Guest";
   if (role === "admin" || role === "pm") dropdownVal = "PM";
   else if (role === "hosp") dropdownVal = "HoSP";
@@ -69,11 +66,14 @@ const Layout = ({ activeTab, setActiveTab, children, currentUserRole, setCurrent
         <div className="sidebar-nav">
           <div className="nav-section-title">Curriculum</div>
 
-          {/* Botón de Shayan */}
+
           <NavLink id="semesters" label="Semesters" rolesAllowed={["admin", "pm", "hosp", "lecturer", "student"]} />
 
-          {/* ✅ TU BOTÓN INTEGRADO */}
+          {/* Botón de Semester Planning (Tú) */}
           <NavLink id="semester-planning" label="Semester Planning" rolesAllowed={["admin", "pm", "hosp", "lecturer"]} />
+
+
+          <NavLink id="timetable" label="Timetable View" rolesAllowed={["admin", "pm", "hosp", "lecturer", "student"]} />
 
           <NavLink id="programs" label="Study Programs" rolesAllowed={["admin", "pm", "hosp", "lecturer", "student"]} />
           <NavLink id="modules" label="Modules" rolesAllowed={["admin", "pm", "hosp", "lecturer", "student"]} />
