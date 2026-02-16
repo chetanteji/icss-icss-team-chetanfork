@@ -21,9 +21,10 @@ export default function TimetableManager() {
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
 
-  // VISTA Y FECHA
+  // VISTA, FECHA Y MODO (Calendar vs List)
   const [viewMode, setViewMode] = useState("Week"); // "Day" | "Week" | "Month"
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [isListView, setIsListView] = useState(false); // <--- NUEVO ESTADO PARA LISTA
 
   const [newEntry, setNewEntry] = useState({ day: "", time: "", offered_module_id: "", room_id: "" });
 
@@ -159,7 +160,61 @@ export default function TimetableManager() {
     return filteredData.find(entry => entry.day_of_week === day && entry.start_time.startsWith(hourPrefix));
   };
 
-  // --- RENDER MONTH VIEW ---
+  // --- RENDERIZADO DE VISTAS ---
+
+  // 1. VISTA DE LISTA (La nueva funcionalidad ICSS-161)
+  const renderListView = () => {
+    // Ordenar por día y luego por hora
+    const sortedList = [...filteredData].sort((a, b) => {
+      const dayOrder = { "Monday": 1, "Tuesday": 2, "Wednesday": 3, "Thursday": 4, "Friday": 5 };
+      if (dayOrder[a.day_of_week] !== dayOrder[b.day_of_week]) {
+        return dayOrder[a.day_of_week] - dayOrder[b.day_of_week];
+      }
+      return a.start_time.localeCompare(b.start_time);
+    });
+
+    return (
+      <div style={{ marginTop: "20px", overflowX: "auto", boxShadow: "0 2px 10px rgba(0,0,0,0.05)", borderRadius: "8px", border: "1px solid #eee" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", background: "white" }}>
+          <thead>
+            <tr style={{ background: "#f8f9fa", borderBottom: "2px solid #dee2e6" }}>
+              <th style={{ padding: "12px 15px", textAlign: "left", color: "#495057" }}>Day</th>
+              <th style={{ padding: "12px 15px", textAlign: "left", color: "#495057" }}>Time</th>
+              <th style={{ padding: "12px 15px", textAlign: "left", color: "#495057" }}>Module</th>
+              <th style={{ padding: "12px 15px", textAlign: "left", color: "#495057" }}>Lecturer</th>
+              <th style={{ padding: "12px 15px", textAlign: "left", color: "#495057" }}>Room</th>
+              <th style={{ padding: "12px 15px", textAlign: "center", color: "#495057" }}>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sortedList.length === 0 ? (
+              <tr><td colSpan="6" style={{ padding: "20px", textAlign: "center", color: "#999" }}>No classes scheduled yet.</td></tr>
+            ) : (
+              sortedList.map((entry, idx) => (
+                <tr key={entry.id} style={{ borderBottom: "1px solid #f1f3f5", background: idx % 2 === 0 ? "white" : "#fcfcfc" }}>
+                  <td style={{ padding: "12px 15px", fontWeight: "bold", color: "#2b4a8e" }}>{entry.day_of_week}</td>
+                  <td style={{ padding: "12px 15px" }}>{entry.start_time} - {entry.end_time}</td>
+                  <td style={{ padding: "12px 15px", fontWeight: "600" }}>{entry.module_name}</td>
+                  <td style={{ padding: "12px 15px" }}>{entry.lecturer_name}</td>
+                  <td style={{ padding: "12px 15px" }}>📍 {entry.room_name}</td>
+                  <td style={{ padding: "12px 15px", textAlign: "center" }}>
+                    <button
+                      onClick={(e) => handleDelete(entry.id, e)}
+                      style={{ background: "#ffe3e3", color: "#c92a2a", border: "none", padding: "5px 10px", borderRadius: "4px", cursor: "pointer", fontSize: "0.8rem", fontWeight: "bold" }}
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
+  // 2. VISTA MENSUAL
   const renderMonthView = () => {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
@@ -205,7 +260,50 @@ export default function TimetableManager() {
     );
   };
 
-  // ESTILOS
+  // 3. VISTA SEMANAL / DIARIA
+  const renderWeekView = () => (
+    <div style={{ borderTop: "1px solid #e9ecef", overflowX: "auto" }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "900px", tableLayout: "fixed" }}>
+        <thead>
+          <tr>
+            <th style={{ width: "80px", borderRight: "1px solid #e9ecef" }}></th>
+            {visibleDays.map(day => (
+              <th key={day} style={{ padding: "15px", textAlign: "center", fontWeight: "bold", color: "#2b4a8e", fontSize:"1.1rem", borderBottom: "2px solid #dee2e6", borderRight: "1px solid #f1f3f5" }}>
+                {day}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {hours.map(hour => (
+            <tr key={hour}>
+              <td style={{ padding: "15px 10px", textAlign: "center", color: "#343a40", fontWeight: "700", borderRight: "1px solid #e9ecef", borderBottom: "1px solid #f8f9fa", verticalAlign: "middle" }}>{hour}</td>
+              {visibleDays.map(day => {
+                const entry = getEntryForSlot(day, hour);
+                const colors = entry ? getColorForModule(entry.module_name) : null;
+                return (
+                  <td key={day} onClick={() => !entry && handleCellClick(day, hour)} style={{ borderRight: "1px solid #f1f3f5", borderBottom: "1px solid #f1f3f5", height: "100px", padding: "6px", verticalAlign: "top", cursor: entry ? "default" : "pointer" }}>
+                    {entry ? (
+                      <div style={{ background: colors.bg, borderLeft: `5px solid ${colors.border}`, borderRadius: "6px", height: "100%", padding: "8px 10px", position: "relative", boxShadow: "0 2px 4px rgba(0,0,0,0.03)", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+                        <div>
+                          <div style={{ fontWeight: "700", fontSize: "0.85rem", color: "#212529" }}>{entry.module_name}</div>
+                          <div style={{ fontSize: "0.75rem", color: "#495057" }}>{entry.lecturer_name}</div>
+                        </div>
+                        <div style={{ fontSize: "0.75rem", fontWeight: "600" }}>📍 {entry.room_name}</div>
+                        <button onClick={(e) => handleDelete(entry.id, e)} style={{ position: "absolute", top: "5px", right: "5px", background: "none", border: "none", color: "#fa5252", cursor: "pointer", fontSize: "14px" }}>✕</button>
+                      </div>
+                    ) : null}
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+
+  // --- ESTILOS ---
   const navButtonStyle = (mode) => ({
     padding: "8px 24px",
     background: viewMode === mode ? "#2b4a8e" : "white",
@@ -253,90 +351,72 @@ export default function TimetableManager() {
         </div>
       </div>
 
-      {/* NAVEGACIÓN */}
+      {/* NAVEGACIÓN Y CONTROLES */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "25px" }}>
-        <div style={{ display: "flex", gap: "15px" }}>
-          <button style={navButtonStyle("Day")} onClick={() => setViewMode("Day")}>Day</button>
-          <button style={navButtonStyle("Week")} onClick={() => setViewMode("Week")}>Week</button>
-          <button style={navButtonStyle("Month")} onClick={() => setViewMode("Month")}>Month</button>
-        </div>
 
+        {/* Botones de Vista (Solo visibles si NO estamos en modo Lista) */}
+        {!isListView ? (
+          <div style={{ display: "flex", gap: "15px" }}>
+            <button style={navButtonStyle("Day")} onClick={() => setViewMode("Day")}>Day</button>
+            <button style={navButtonStyle("Week")} onClick={() => setViewMode("Week")}>Week</button>
+            <button style={navButtonStyle("Month")} onClick={() => setViewMode("Month")}>Month</button>
+          </div>
+        ) : (
+          <div></div> // Espacio vacío para mantener alineación
+        )}
+
+        {/* Fecha Central */}
         <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
-          <button onClick={() => handleNavigateDate("prev")} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "2rem", color: "#2b4a8e" }}>‹</button>
-          <div style={{ textAlign: "center", color: "#2b4a8e" }}>
-            {viewMode === "Month" ? (
-              <div style={{ fontSize: "1.4rem", fontWeight: "700" }}>{displayMonthName}</div>
-            ) : (
-              <>
-                <div style={{ fontSize: "1.1rem", fontWeight: "700", lineHeight: "1.2" }}>{viewMode === "Week" ? "Week View" : displayDayName}</div>
-                <div style={{ fontSize: "1rem", fontWeight: "600", opacity: 0.9 }}>{viewMode === "Week" ? "(Mon - Fri)" : displayDateNum}</div>
-              </>
-            )}
-          </div>
-          <button onClick={() => handleNavigateDate("next")} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "2rem", color: "#2b4a8e" }}>›</button>
+          {!isListView && (
+            <>
+              <button onClick={() => handleNavigateDate("prev")} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "2rem", color: "#2b4a8e" }}>‹</button>
+              <div style={{ textAlign: "center", color: "#2b4a8e" }}>
+                {viewMode === "Month" ? (
+                  <div style={{ fontSize: "1.4rem", fontWeight: "700" }}>{displayMonthName}</div>
+                ) : (
+                  <>
+                    <div style={{ fontSize: "1.1rem", fontWeight: "700", lineHeight: "1.2" }}>{viewMode === "Week" ? "Week View" : displayDayName}</div>
+                    <div style={{ fontSize: "1rem", fontWeight: "600", opacity: 0.9 }}>{viewMode === "Week" ? "(Mon - Fri)" : displayDateNum}</div>
+                  </>
+                )}
+              </div>
+              <button onClick={() => handleNavigateDate("next")} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "2rem", color: "#2b4a8e" }}>›</button>
+            </>
+          )}
         </div>
 
+        {/* TOGGLE: List / Calendar View (FUNCIONAL) */}
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <span style={{ color: "#2b4a8e", fontWeight: "700", fontSize: "0.95rem" }}>Calendar View</span>
-          <div style={{ width: "44px", height: "24px", background: "#2b4a8e", borderRadius: "12px", position: "relative", cursor: "pointer", display: "flex", alignItems: "center" }}>
-            <div style={{ width: "18px", height: "18px", background: "white", borderRadius: "50%", position: "absolute", right: "3px" }}></div>
+          <span style={{ color: isListView ? "#2b4a8e" : "#6c757d", fontWeight: isListView ? "700" : "400", fontSize: "0.95rem" }}>List View</span>
+
+          <div
+            onClick={() => setIsListView(!isListView)} // <--- AQUÍ ESTÁ LA MAGIA
+            style={{
+              width: "44px", height: "24px",
+              background: isListView ? "#6c757d" : "#2b4a8e", // Gris si es Lista, Azul si es Calendario
+              borderRadius: "12px", position: "relative", cursor: "pointer", display: "flex", alignItems: "center", transition: "background 0.3s"
+            }}>
+            <div style={{
+              width: "18px", height: "18px", background: "white", borderRadius: "50%",
+              position: "absolute",
+              left: isListView ? "3px" : "auto", // Mover a la izquierda si es Lista
+              right: isListView ? "auto" : "3px", // Mover a la derecha si es Calendario
+              boxShadow: "0 1px 2px rgba(0,0,0,0.2)", transition: "all 0.3s"
+            }}></div>
           </div>
+
+          <span style={{ color: !isListView ? "#2b4a8e" : "#6c757d", fontWeight: !isListView ? "700" : "400", fontSize: "0.95rem" }}>Calendar View</span>
         </div>
       </div>
 
-      {/* RENDER TABLE */}
+      {/* RENDERIZADO PRINCIPAL */}
       {loading ? <p>Loading...</p> : (
-        viewMode === "Month" ? renderMonthView() : (
-          <div style={{ borderTop: "1px solid #e9ecef", overflowX: "auto" }}>
-            {/* AQUÍ ESTÁ EL TRUCO: tableLayout: "fixed" para columnas iguales */}
-            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "900px", tableLayout: "fixed" }}>
-
-              {/* HEADER DE DÍAS (THEAD) */}
-              <thead>
-                <tr>
-                  {/* Columna de hora: ancho fijo */}
-                  <th style={{ width: "80px", borderRight: "1px solid #e9ecef" }}></th>
-
-                  {/* Columnas de días: ancho automático igualitario */}
-                  {visibleDays.map(day => (
-                    <th key={day} style={{ padding: "15px", textAlign: "center", fontWeight: "bold", color: "#2b4a8e", fontSize:"1.1rem", borderBottom: "2px solid #dee2e6", borderRight: "1px solid #f1f3f5" }}>
-                      {day}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-
-              <tbody>
-                {hours.map(hour => (
-                  <tr key={hour}>
-                    <td style={{ padding: "15px 10px", textAlign: "center", color: "#343a40", fontWeight: "700", borderRight: "1px solid #e9ecef", borderBottom: "1px solid #f8f9fa", verticalAlign: "middle" }}>{hour}</td>
-                    {visibleDays.map(day => {
-                      const entry = getEntryForSlot(day, hour);
-                      const colors = entry ? getColorForModule(entry.module_name) : null;
-                      return (
-                        <td key={day} onClick={() => !entry && handleCellClick(day, hour)} style={{ borderRight: "1px solid #f1f3f5", borderBottom: "1px solid #f1f3f5", height: "100px", padding: "6px", verticalAlign: "top", cursor: entry ? "default" : "pointer" }}>
-                          {entry ? (
-                            <div style={{ background: colors.bg, borderLeft: `5px solid ${colors.border}`, borderRadius: "6px", height: "100%", padding: "8px 10px", position: "relative", boxShadow: "0 2px 4px rgba(0,0,0,0.03)", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-                              <div>
-                                <div style={{ fontWeight: "700", fontSize: "0.85rem", color: "#212529" }}>{entry.module_name}</div>
-                                <div style={{ fontSize: "0.75rem", color: "#495057" }}>{entry.lecturer_name}</div>
-                              </div>
-                              <div style={{ fontSize: "0.75rem", fontWeight: "600" }}>📍 {entry.room_name}</div>
-                              <button onClick={(e) => handleDelete(entry.id, e)} style={{ position: "absolute", top: "5px", right: "5px", background: "none", border: "none", color: "#fa5252", cursor: "pointer", fontSize: "14px" }}>✕</button>
-                            </div>
-                          ) : null}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        isListView ? renderListView() : (
+          viewMode === "Month" ? renderMonthView() : renderWeekView()
         )
       )}
 
-      {/* MODAL */}
+      {/* MODAL (Para agregar clases) */}
       {showModal && (
         <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.4)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000, backdropFilter: "blur(3px)" }}>
           <div style={{ background: "white", padding: "30px", borderRadius: "12px", width: "420px", boxShadow: "0 10px 30px rgba(0,0,0,0.15)" }}>
