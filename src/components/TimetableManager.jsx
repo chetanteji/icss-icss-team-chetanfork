@@ -204,11 +204,10 @@ export default function TimetableManager() {
     );
   };
 
-  // 2. VISTA SEMESTRAL COMPLETA (UNIFORME AZUL)
+  // 2. VISTA SEMESTRAL COMPLETA (Actualizado con Nombre de Profe)
   const renderSemesterPlan = () => {
     let months = [];
     if (semesterType === "Winter") {
-      // Octubre a Febrero
       months = [
         { name: "October", days: 31, startDay: 2 },
         { name: "November", days: 30, startDay: 5 },
@@ -217,7 +216,6 @@ export default function TimetableManager() {
         { name: "February", days: 28, startDay: 6 }
       ];
     } else {
-      // Abril a Agosto (Verano)
       months = [
         { name: "April", days: 30, startDay: 3 },
         { name: "May", days: 31, startDay: 5 },
@@ -229,7 +227,7 @@ export default function TimetableManager() {
 
     return (
       <div style={{marginTop: "20px"}}>
-        {/* SELECTOR DE TIPO DE SEMESTRE (Uniforme Azul) */}
+        {/* Selector Uniforme Azul */}
         <div style={{display:"flex", justifyContent:"center", marginBottom:"20px", gap:"10px"}}>
           <button
             onClick={() => setSemesterType("Winter")}
@@ -252,16 +250,16 @@ export default function TimetableManager() {
           > Summer Semester (Apr - Aug)</button>
         </div>
 
-        {/* TABLA HORIZONTAL DE MESES */}
+        {/* Tabla Horizontal */}
         <div style={{ display: "flex", gap: "20px", overflowX: "auto", paddingBottom: "20px" }}>
           {months.map((month, mIdx) => (
-            <div key={mIdx} style={{ minWidth: "300px", background: "white", border: "1px solid #ddd", borderRadius: "8px", overflow: "hidden" }}>
-              {/* Header del Mes (Siempre Azul) */}
+            <div key={mIdx} style={{ minWidth: "320px", background: "white", border: "1px solid #ddd", borderRadius: "8px", overflow: "hidden" }}>
+              {/* Header Mes */}
               <div style={{ background: "#2b4a8e", color: "white", padding: "10px", textAlign: "center", fontWeight: "bold" }}>
                 {month.name}
               </div>
 
-              {/* Tabla de días */}
+              {/* Tabla Días */}
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8rem" }}>
                 <thead>
                   <tr style={{ background: "#f1f3f5", borderBottom: "1px solid #ddd" }}>
@@ -298,9 +296,11 @@ export default function TimetableManager() {
                                 <div key={cls.id} style={{
                                   background: getColorForModule(cls.module_name).bg,
                                   borderLeft: `3px solid ${getColorForModule(cls.module_name).border}`,
-                                  padding: "3px 5px", borderRadius: "3px", fontSize: "0.7rem"
+                                  padding: "4px 6px", borderRadius: "3px", fontSize: "0.7rem"
                                 }}>
-                                  <strong>{cls.start_time}</strong> {cls.module_name}
+                                  <div style={{marginBottom:"2px"}}><strong>{cls.start_time}</strong> {cls.module_name}</div>
+                                  {/* ✅ AQUÍ SE AGREGA EL PROFESOR */}
+                                  <div style={{fontSize:"0.65rem", opacity:0.8, fontStyle:"italic"}}>👨‍🏫 {cls.lecturer_name}</div>
                                 </div>
                               ))}
                             </div>
