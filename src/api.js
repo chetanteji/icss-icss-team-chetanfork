@@ -19,16 +19,20 @@ async function request(path, options = {}) {
     headers["Authorization"] = `Bearer ${token}`;
   }
 
+
+  if (options.method === 'GET' || !options.method) {
+    delete options.body;
+  }
+
   const res = await fetch(url, { ...options, headers });
 
   const text = await res.text().catch(() => "");
 
   if (!res.ok) {
-    // If token expired (401), auto-logout
     if (res.status === 401) {
       localStorage.removeItem("token");
       localStorage.removeItem("userRole");
-      window.location.href = "/"; // Force reload to login
+      window.location.href = "/";
     }
 
     try {
@@ -76,7 +80,7 @@ const api = {
   updateLecturer(id, payload) { return request(`/lecturers/${id}`, { method: "PUT", body: JSON.stringify(payload) }); },
   deleteLecturer(id) { return request(`/lecturers/${id}`, { method: "DELETE" }); },
 
-  // ✅ LECTURER MODULE ASSIGNMENT
+  // LECTURER MODULE ASSIGNMENT
   getLecturerModules(id) {
     return request(`/lecturers/${id}/modules`);
   },
@@ -100,7 +104,6 @@ const api = {
   deleteRoom(id) { return request(`/rooms/${id}`, { method: "DELETE" }); },
 
   // ---------- SCHEDULER CONSTRAINTS ----------
-
   getConstraints() { return request("/scheduler-constraints/"); },
   createConstraint(payload) { return request("/scheduler-constraints/", { method: "POST", body: JSON.stringify(payload) }); },
   updateConstraint(id, payload) { return request(`/scheduler-constraints/${id}`, { method: "PUT", body: JSON.stringify(payload) }); },
@@ -110,6 +113,35 @@ const api = {
   getAvailabilities() { return request("/availabilities/"); },
   updateLecturerWeek(payload) { return request("/availabilities/update", { method: "POST", body: JSON.stringify(payload) }); },
   deleteLecturerAvailability(lecturerId) { return request(`/availabilities/lecturer/${lecturerId}`, { method: "DELETE" }); },
+
+  //  SEMESTERS
+  getSemesters() { return request("/semesters/"); },
+  createSemester(payload) { return request("/semesters/", { method: "POST", body: JSON.stringify(payload) }); },
+  deleteSemester(id) { return request(`/semesters/${id}`, { method: "DELETE" }); },
+
+  //  OFFERED MODULES
+  getOfferedModules(semester) {
+    const query = semester ? `?semester=${encodeURIComponent(semester)}` : "";
+    return request(`/offered-modules/${query}`);
+  },
+  createOfferedModule(payload) {
+    return request("/offered-modules/", { method: "POST", body: JSON.stringify(payload) });
+  },
+  deleteOfferedModule(id) {
+    return request(`/offered-modules/${id}`, { method: "DELETE" });
+  },
+
+  //  SCHEDULE
+  getSchedule(semester) {
+    const query = semester ? `?semester=${encodeURIComponent(semester)}` : "";
+    return request(`/schedule/${query}`);
+  },
+  createScheduleEntry(payload) {
+    return request("/schedule/", { method: "POST", body: JSON.stringify(payload) });
+  },
+  deleteScheduleEntry(id) {
+    return request(`/schedule/${id}`, { method: "DELETE" });
+  },
 };
 
 export default api;

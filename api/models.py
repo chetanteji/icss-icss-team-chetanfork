@@ -119,35 +119,71 @@ class LecturerAvailability(Base):
     schedule_data = Column(JSON, default={}, nullable=False)
 
 
-# -------------------------------------------------------------------
-#  UPDATED SCHEDULER MODELS
-# -------------------------------------------------------------------
-
 class SchedulerConstraint(Base):
     __tablename__ = "scheduler_constraints"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    category = Column(String, default="General")
+    rule_text = Column(Text, nullable=False)
+    scope = Column(String(20), nullable=False)
+    target_id = Column(String, nullable=True, default="0")
+    valid_from = Column(Date, nullable=True)
+    valid_to = Column(Date, nullable=True)
+    is_enabled = Column(Boolean, default=True, nullable=False)
+    created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now(), nullable=False)
+
+
+class Semester(Base):
+    __tablename__ = "semesters"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    acronym = Column(String, nullable=False)
+    start_date = Column(Date, nullable=False)
+    end_date = Column(Date, nullable=False)
+
+
+
+class OfferedModule(Base):
+    __tablename__ = "offered_modules"
 
     id = Column(Integer, primary_key=True, index=True)
 
-    # Basic Info
-    name = Column(String, nullable=False)  # Internal Title
-    category = Column(String, default="General")
 
-    # The Natural Language Instruction
-    rule_text = Column(Text, nullable=False)
+    module_code = Column(String, ForeignKey("modules.module_code", ondelete="CASCADE"), nullable=False)
 
-    # Context / Scope
-    scope = Column(String(20), nullable=False)
 
-    # ✅ CHANGED: Now String to support Module Codes (e.g., "CS-101")
-    target_id = Column(String, nullable=True, default="0")
+    lecturer_id = Column(Integer, ForeignKey("lecturers.ID"), nullable=True)
 
-    # Validity Dates (Optional)
-    valid_from = Column(Date, nullable=True)
-    valid_to = Column(Date, nullable=True)
 
-    # Status
-    is_enabled = Column(Boolean, default=True, nullable=False)
+    semester = Column(String, nullable=False)
 
-    # Timestamps
-    created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
-    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now(), nullable=False)
+    status = Column(String, default="Confirmed")
+
+    # Relaciones para leer nombres bonitos
+    module = relationship("Module")
+    lecturer = relationship("Lecturer")
+
+
+class ScheduleEntry(Base):
+    __tablename__ = "schedule_entries"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+
+    offered_module_id = Column(Integer, ForeignKey("offered_modules.id", ondelete="CASCADE"), nullable=False)
+
+
+    room_id = Column(Integer, ForeignKey("rooms.id"), nullable=True)
+
+
+    day_of_week = Column(String, nullable=False)  # "Monday", "Tuesday"...
+    start_time = Column(String, nullable=False)  # "08:00"
+    end_time = Column(String, nullable=False)  # "10:00"
+
+
+    semester = Column(String, nullable=False)
+
+    
+    offered_module = relationship("OfferedModule")
+    room = relationship("Room")

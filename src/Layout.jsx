@@ -7,11 +7,7 @@ const Layout = ({ activeTab, setActiveTab, children, currentUserRole, setCurrent
   const role = (currentUserRole || "").trim().toLowerCase();
 
   // ✅ Variable para saber si es estudiante (y ocultar cosas grandes)
-
-  const isLecturer = role === "lecturer";
-  const isHoSP = role === "hosp";
-  const isPM = role === "pm" || role === "admin";
-
+  const isStudent = role === "student";
 
   const NavLink = ({ id, icon, label, rolesAllowed = [] }) => {
     const normalizedAllowed = rolesAllowed.map(r => r.toLowerCase());
@@ -61,12 +57,6 @@ const Layout = ({ activeTab, setActiveTab, children, currentUserRole, setCurrent
 
       setCurrentUserRole(normalizedBackendRole);
 
-      // 🔒 Reset tab for Lecturer & Student
-if (["lecturer", "student"].includes(normalizedBackendRole)) {
-    setActiveTab("modules");
-}
-
-
       // Avisamos del cambio de rol
       window.dispatchEvent(new Event("role-changed"));
 
@@ -87,73 +77,33 @@ if (["lecturer", "student"].includes(normalizedBackendRole)) {
       <aside className="sidebar">
         <div className="sidebar-header">ICSS Scheduler</div>
 
-            <div className="sidebar-nav">
+        <div className="sidebar-nav">
+          <div className="nav-section-title">Curriculum</div>
+          <NavLink id="programs" label="Study Programs" rolesAllowed={["admin", "pm", "hosp", "lecturer", "student"]} />
+          <NavLink id="modules" label="Modules" rolesAllowed={["admin", "pm", "hosp", "lecturer", "student"]} />
 
-  {/* ===== CURRICULUM (NOT FOR STUDENTS) ===== */}
-  {(isPM || isHoSP || isLecturer) && (
-  <>
-    <div className="nav-section-title">Curriculum</div>
-    <NavLink
-      id="programs"
-      label="Study Programs"
-      rolesAllowed={["admin", "pm", "hosp", "lecturer"]}
-    />
-  </>
-)}
-
-
-  {/* ===== MODULES (VISIBLE TO STUDENT) ===== */}
- <NavLink
-  id="modules"
-  label="Modules"
-  rolesAllowed={["admin", "pm", "hosp", "lecturer", "student"]}
-/>
-
-
-  {/* ===== PEOPLE & GROUPS (NOT FOR STUDENTS) ===== */}
-  {(isPM || isHoSP || isLecturer) && (
-  <>
-    <div className="nav-section-title">People & Groups</div>
-
-    <NavLink
-      id="lecturers"
-      label="Lecturers"
-      rolesAllowed={["admin", "pm", "hosp", "lecturer"]}
-    />
-
-    <NavLink
-      id="groups"
-      label="Student Groups"
-      rolesAllowed={["admin", "pm", "hosp", "lecturer"]}
-    />
-  </>
-)}
-
-
+          <div className="nav-section-title">People & Groups</div>
+          {/* ✅ LECTURERS: Quitamos "student" de la lista permitida */}
+          <NavLink id="lecturers" label="Lecturers" rolesAllowed={["admin", "pm", "hosp", "lecturer"]} />
+          <NavLink id="groups" label="Student Groups" rolesAllowed={["admin", "pm", "hosp", "lecturer", "student"]} />
 
           {/* ✅ FACILITIES: Ocultamos toda la sección si es Estudiante */}
-          {(isPM || isHoSP || isLecturer) && (
-  <>
-    <div className="nav-section-title">Facilities</div>
-    <NavLink
-      id="rooms"
-      label="Rooms"
-      rolesAllowed={["admin", "pm", "hosp", "lecturer"]}
-    />
-  </>
-)}
+          {!isStudent && (
+            <>
+              <div className="nav-section-title">Facilities</div>
+             <NavLink id="rooms" label="Rooms" rolesAllowed={["pm"]} />
 
+            </>
+          )}
 
           {/* ✅ PLANNING LOGIC: Ocultamos toda la sección si es Estudiante */}
-          {isPM && (
-  <>
-    <div className="nav-section-title">Planning Logic</div>
-    <NavLink id="constraints" label="Constraints & Rules" rolesAllowed={["admin", "pm", "hosp"]} />
-
-    <NavLink id="availabilities" label="Availability" rolesAllowed={["admin", "pm", "lecturer"]} />
-  </>
-)}
-
+          {!isStudent && (
+            <>
+              <div className="nav-section-title">Planning Logic</div>
+              <NavLink id="constraints" label="Constraints & Rules" rolesAllowed={["admin", "pm", "hosp", "lecturer"]} />
+              <NavLink id="availabilities" label="Availability" rolesAllowed={["admin", "pm", "hosp", "lecturer"]} />
+            </>
+          )}
         </div>
 
         <div className="sidebar-footer" style={{ borderTop: '1px solid #334155', padding: '20px' }}>

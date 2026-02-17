@@ -87,10 +87,6 @@ const styles = {
   helpText: { fontSize: "0.85rem", color: "#64748b", marginTop: "6px", lineHeight: 1.4 }
 };
 
-
-
-
-
 const STANDARD_ROOM_TYPES = ["Lecture Classroom", "Computer Lab", "Seminar"];
 const ASSESSMENT_TYPES = ["Written Exam", "Presentation", "Project", "Report"];
 const CATEGORY_TYPES = ["Core", "Shared", "Elective"];
@@ -308,7 +304,7 @@ export default function ModuleOverview({ onNavigate }) {
   const validateBeforeSave = () => {
     if (!draft.module_code || !draft.name) {
       alert("Code and Name are required");
-
+      
       if (assessmentTotal !== 100) {
         alert(`Assessment weights must total 100%. Current: ${assessmentTotal}%`);
         return false;
@@ -600,7 +596,7 @@ export default function ModuleOverview({ onNavigate }) {
                   </button>
                 </div>
               </div>
-
+              
 
               <div style={styles.helpText}>
                 Add one or more assessment types and set weights. Total weight MUST be 100%.
