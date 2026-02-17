@@ -1,7 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import api from "../api";
 
-// --- STYLES (Identical mapping to ProgramOverview where applicable) ---
 const styles = {
   container: { padding: "20px", fontFamily: "'Inter', 'Segoe UI', sans-serif", maxWidth: "1200px", margin: "0 auto", color: "#334155" },
   header: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "30px", borderBottom: "1px solid #e2e8f0", paddingBottom: "20px" },
@@ -15,8 +14,7 @@ const styles = {
   primaryBtn: { background: "#2563eb", color: "white", boxShadow: "0 2px 4px rgba(37,99,235,0.2)" },
   secondaryBtn: { background: "#f1f5f9", color: "#475569", border: "1px solid #cbd5e1" },
 
-  // ACTION BUTTONS (Exact match to ProgramOverview)
-  actionContainer: { display: "flex", gap: "8px", justifyContent: "flex-start" },
+  actionContainer: { display: "flex", gap: "8px", justifyContent: "flex-end" },
   actionBtn: { padding: "4px 8px", borderRadius: "6px", border: "none", cursor: "pointer", fontSize: "0.8rem", fontWeight: "600" },
   editBtn: { background: "#e2e8f0", color: "#475569" },
   delBtn: { background: "#fee2e2", color: "#ef4444" },
@@ -26,11 +24,12 @@ const styles = {
   groupCount: { fontSize: "0.8rem", color: "#64748b", fontWeight: "500", background: "#f1f5f9", padding: "2px 8px", borderRadius: "10px" },
 
   tableContainer: { border: "1px solid #e2e8f0", borderRadius: "10px", overflow: "hidden", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" },
-  table: { width: "100%", borderCollapse: "collapse", background: "white", fontSize: "0.95rem" },
-  th: { background: "#f8fafc", padding: "14px 16px", textAlign: "left", fontSize: "0.8rem", fontWeight: "700", color: "#475569", textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: "1px solid #e2e8f0" },
-  td: { padding: "14px 16px", borderBottom: "1px solid #f1f5f9", color: "#334155", verticalAlign: "top" },
 
-  // MODALS (Exact match to ProgramOverview)
+  // ✅ FIXED TABLE LAYOUT
+  table: { width: "100%", borderCollapse: "collapse", background: "white", fontSize: "0.95rem", tableLayout: "fixed" },
+  th: { background: "#f8fafc", padding: "14px 16px", textAlign: "left", fontSize: "0.8rem", fontWeight: "700", color: "#475569", textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: "1px solid #e2e8f0" },
+  td: { padding: "14px 16px", borderBottom: "1px solid #f1f5f9", color: "#334155", verticalAlign: "top", wordWrap: "break-word" },
+
   overlay: { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 },
   modal: { backgroundColor: "#ffffff", padding: "30px", borderRadius: "12px", width: "700px", maxWidth: "90%", maxHeight: "90vh", overflowY: "auto", boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)" },
 
@@ -59,7 +58,6 @@ const formatGermanDate = (isoDate) => {
     return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
 };
 
-// Configured exclusively to requirements
 const SCOPE_CATEGORIES = {
     University: [
         { value: "University Open Days", label: "University Open Days" },
@@ -101,53 +99,30 @@ export default function ConstraintOverview() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
 
-  // Filtering & Deletion State
   const [scopeFilter, setScopeFilter] = useState("ALL");
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
 
-  // DRAFT STATE
   const [draft, setDraft] = useState({
-    name: "",
-    category: "Custom",
-    scope: "University",
-    target_id: "0",
-    valid_from: "",
-    valid_to: "",
-    rule_text: "",
-    is_enabled: true
+    name: "", category: "Custom", scope: "University", target_id: "0",
+    valid_from: "", valid_to: "", rule_text: "", is_enabled: true
   });
 
-  // BUILDER STATE
   const [builder, setBuilder] = useState({
-    day: "Friday",
-    limit: "4 hours",
-    gap: "at least 1 hour",
-    startTime: "08:00",
-    endTime: "20:00",
-    slotDuration: "90",
-    breakDuration: "15",
-    workloadLimit: "18",
-    semesterSeason: "Winter",
-    semesterYear: new Date().getFullYear(),
-
-    deliveryMode: "Onsite",
-    holidayName: "Public Holiday",
-    customDuration: "180",
-
-    selectedDays: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+    day: "Friday", limit: "4 hours", gap: "at least 1 hour", startTime: "08:00", endTime: "20:00",
+    slotDuration: "90", breakDuration: "15", workloadLimit: "18", semesterSeason: "Winter",
+    semesterYear: new Date().getFullYear(), deliveryMode: "Onsite", holidayName: "Public Holiday",
+    customDuration: "180", selectedDays: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
   });
 
   useEffect(() => { loadData(); }, []);
 
-  // --- AUTO-GENERATOR ---
   useEffect(() => {
     if (!modalOpen) return;
 
     const targetList = targets[draft.scope.toUpperCase()] || [];
     const targetObj = targetList.find(t => String(t.id) === String(draft.target_id));
 
-    // Naming Logic
     let entity = `${draft.scope} "${targetObj ? targetObj.name : 'Unknown'}"`;
     if (draft.scope === "University") {
         if (String(draft.target_id) === "0") {
@@ -189,9 +164,7 @@ export default function ConstraintOverview() {
         if (draft.category === "Custom") {
             if (!draft.rule_text) {
                 generatedText = "Enter custom rule description here.";
-            } else {
-                return;
-            }
+            } else { return; }
         }
         break;
     }
@@ -200,61 +173,38 @@ export default function ConstraintOverview() {
         setDraft(prev => ({ ...prev, rule_text: generatedText }));
     }
 
-  }, [
-    draft.category, draft.scope, draft.target_id, draft.valid_from, draft.valid_to,
-    builder, modalOpen, targets, draft.rule_text
-  ]);
+  }, [draft.category, draft.scope, draft.target_id, draft.valid_from, draft.valid_to, builder, modalOpen, targets, draft.rule_text]);
 
   async function loadData() {
     try {
       const [cRes, lRes, gRes, mRes, rRes, pRes] = await Promise.all([
-        api.getConstraints(),
-        api.getLecturers(),
-        api.getGroups(),
-        api.getModules(),
-        api.getRooms(),
-        api.getPrograms()
+        api.getConstraints(), api.getLecturers(), api.getGroups(),
+        api.getModules(), api.getRooms(), api.getPrograms()
       ]);
 
       setConstraints(cRes || []);
 
-      // HARDCODED LOCATIONS
       const staticLocations = ["Berlin", "Düsseldorf", "Munich"];
       const campusTargets = staticLocations.map((loc, idx) => ({
-          id: String(10000 + idx),
-          name: `Campus: ${loc}`
+          id: String(10000 + idx), name: `Campus: ${loc}`
       }));
 
-      // --- Sort & Format Programs ---
       const progs = pRes || [];
       const programTargets = progs.map(p => ({
-          id: String(p.id),
-          name: `[${p.degree_type || p.level || '-'}] ${p.name}`,
-          rawName: p.name
-      })).sort((a, b) => a.rawName.localeCompare(b.rawName))
-        .map(t => ({ id: t.id, name: t.name }));
+          id: String(p.id), name: `[${p.degree_type || p.level || '-'}] ${p.name}`, rawName: p.name
+      })).sort((a, b) => a.rawName.localeCompare(b.rawName)).map(t => ({ id: t.id, name: t.name }));
 
-      // --- Sort & Format Modules ---
       const moduleTargets = (mRes || []).map(m => {
           const prog = progs.find(p => p.id === m.program_id);
           const progName = prog ? prog.name : "Unassigned";
-          return {
-              id: String(m.module_code),
-              name: `[${progName}] ${m.module_code} - ${m.name}`,
-              progName,
-              code: m.module_code
-          };
+          return { id: String(m.module_code), name: `[${progName}] ${m.module_code} - ${m.name}`, progName, code: m.module_code };
       }).sort((a, b) => {
           if (a.progName === b.progName) return a.code.localeCompare(b.code, undefined, {numeric: true});
           return a.progName.localeCompare(b.progName);
       }).map(t => ({ id: t.id, name: t.name }));
 
-      // --- Sort & Format Rooms ---
       const roomTargets = (rRes || []).map(r => ({
-          id: String(r.id),
-          name: r.location ? `${r.location} - ${r.name}` : r.name,
-          location: r.location || "Unknown",
-          rawName: r.name
+          id: String(r.id), name: r.location ? `${r.location} - ${r.name}` : r.name, location: r.location || "Unknown", rawName: r.name
       })).sort((a, b) => {
           if (a.location === b.location) return a.rawName.localeCompare(b.rawName, undefined, {numeric: true});
           return a.location.localeCompare(b.location);
@@ -279,15 +229,8 @@ export default function ConstraintOverview() {
       valid_from: "", valid_to: "", rule_text: "", is_enabled: true
     });
     setBuilder(prev => ({
-        ...prev,
-        day: "Friday",
-        startTime: "08:00",
-        endTime: "20:00",
-        slotDuration: "90",
-        breakDuration: "15",
-        deliveryMode: "Onsite",
-        holidayName: "Public Holiday",
-        customDuration: "180",
+        ...prev, day: "Friday", startTime: "08:00", endTime: "20:00", slotDuration: "90", breakDuration: "15",
+        deliveryMode: "Onsite", holidayName: "Public Holiday", customDuration: "180",
         selectedDays: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
     }));
     setModalOpen(true);
@@ -296,19 +239,13 @@ export default function ConstraintOverview() {
   function openEdit(c) {
     setEditingId(c.id);
     setDraft({
-      name: c.name,
-      category: c.category,
-      scope: c.scope,
-      target_id: String(c.target_id || "0"),
-      rule_text: c.rule_text,
-      is_enabled: c.is_enabled,
-      valid_from: formatDate(c.valid_from),
-      valid_to: formatDate(c.valid_to)
+      name: c.name, category: c.category, scope: c.scope, target_id: String(c.target_id || "0"),
+      rule_text: c.rule_text, is_enabled: c.is_enabled,
+      valid_from: formatDate(c.valid_from), valid_to: formatDate(c.valid_to)
     });
     setModalOpen(true);
   }
 
-  // --- DELETE LOGIC ---
   const confirmDelete = (item) => {
       setItemToDelete(item);
       setDeleteModalOpen(true);
@@ -327,14 +264,8 @@ export default function ConstraintOverview() {
   async function save() {
     try {
       const payload = {
-        name: draft.name,
-        category: draft.category,
-        scope: draft.scope,
-        target_id: String(draft.target_id),
-        rule_text: draft.rule_text,
-        valid_from: draft.valid_from || null,
-        valid_to: draft.valid_to || null,
-        is_enabled: draft.is_enabled
+        name: draft.name, category: draft.category, scope: draft.scope, target_id: String(draft.target_id),
+        rule_text: draft.rule_text, valid_from: draft.valid_from || null, valid_to: draft.valid_to || null, is_enabled: draft.is_enabled
       };
 
       if (editingId) await api.updateConstraint(editingId, payload);
@@ -348,28 +279,15 @@ export default function ConstraintOverview() {
   const handleScopeChange = (newScope) => {
       const allowedCategories = SCOPE_CATEGORIES[newScope] || SCOPE_CATEGORIES["University"];
       const defaultCategory = allowedCategories[0].value;
-
-      setDraft({
-          ...draft,
-          scope: newScope,
-          target_id: "0",
-          category: defaultCategory
-      });
-  };
-
-  const handleCategoryChange = (newCategory) => {
-    setDraft({ ...draft, category: newCategory });
+      setDraft({ ...draft, scope: newScope, target_id: "0", category: defaultCategory });
   };
 
   const toggleDay = (day) => {
       setBuilder(prev => {
           const days = prev.selectedDays.includes(day)
-            ? prev.selectedDays.filter(d => d !== day)
-            : [...prev.selectedDays, day];
-
+            ? prev.selectedDays.filter(d => d !== day) : [...prev.selectedDays, day];
           const sorter = { "Monday": 1, "Tuesday": 2, "Wednesday": 3, "Thursday": 4, "Friday": 5, "Saturday": 6, "Sunday": 7 };
           days.sort((a,b) => sorter[a] - sorter[b]);
-
           return { ...prev, selectedDays: days };
       });
   };
@@ -382,19 +300,13 @@ export default function ConstraintOverview() {
                 <div style={styles.checkboxGrid}>
                     {DAYS_OF_WEEK.map(day => (
                         <label key={day} style={styles.checkboxLabel}>
-                            <input
-                                type="checkbox"
-                                checked={builder.selectedDays.includes(day)}
-                                onChange={() => toggleDay(day)}
-                            />
-                            {day}
+                            <input type="checkbox" checked={builder.selectedDays.includes(day)} onChange={() => toggleDay(day)} /> {day}
                         </label>
                     ))}
                 </div>
             </div>
         );
     }
-
     if (draft.category === "University Policy") {
         return (
             <div style={{display:'flex', gap:'12px', alignItems:'center'}}>
@@ -405,7 +317,6 @@ export default function ConstraintOverview() {
             </div>
         );
     }
-
     if (draft.category === "Holiday") {
         return (
             <div>
@@ -426,43 +337,34 @@ export default function ConstraintOverview() {
             </div>
         );
     }
-
     if (draft.category === "Time Definition") {
         return (
             <div style={{display:'flex', gap:'15px', alignItems:'center', flexWrap:'wrap'}}>
                 <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
                     <span>Slot Duration:</span>
                     <select style={{...styles.select, width:'auto'}} value={builder.slotDuration} onChange={e => setBuilder({...builder, slotDuration: e.target.value})}>
-                        <option value="45">45 mins</option>
-                        <option value="60">60 mins</option>
-                        <option value="90">90 mins</option>
+                        <option value="45">45 mins</option><option value="60">60 mins</option><option value="90">90 mins</option>
                     </select>
                 </div>
                 <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
                     <span>Break:</span>
                     <select style={{...styles.select, width:'auto'}} value={builder.breakDuration} onChange={e => setBuilder({...builder, breakDuration: e.target.value})}>
-                        <option value="0">None</option>
-                        <option value="15">15 mins</option>
-                        <option value="30">30 mins</option>
+                        <option value="0">None</option><option value="15">15 mins</option><option value="30">30 mins</option>
                     </select>
                 </div>
             </div>
         );
     }
-
     if (draft.category === "Delivery Mode") {
         return (
             <div style={{display:'flex', gap:'12px', alignItems:'center'}}>
                 <span>Mode:</span>
                 <select style={{...styles.select, width:'auto'}} value={builder.deliveryMode} onChange={e => setBuilder({...builder, deliveryMode: e.target.value})}>
-                    <option value="Onsite">Onsite (In Person)</option>
-                    <option value="Online">Online (Remote)</option>
-                    <option value="Hybrid">Hybrid</option>
+                    <option value="Onsite">Onsite (In Person)</option><option value="Online">Online (Remote)</option><option value="Hybrid">Hybrid</option>
                 </select>
             </div>
         );
     }
-
     if (draft.category === "Duration") {
         return (
             <div style={{display:'flex', gap:'12px', alignItems:'center'}}>
@@ -472,7 +374,6 @@ export default function ConstraintOverview() {
             </div>
         );
     }
-
     if (draft.category === "Unavailable Days") {
         return (
             <div style={{display:'flex', gap:'12px', alignItems:'center'}}>
@@ -483,19 +384,15 @@ export default function ConstraintOverview() {
             </div>
         );
     }
-
     return <div style={{color:'#64748b', fontStyle:'italic'}}>Use the text box below to describe a custom rule.</div>;
   };
 
   const currentCategories = SCOPE_CATEGORIES[draft.scope] || SCOPE_CATEGORIES["University"];
   const showGenericValidity = !["Holiday"].includes(draft.category);
 
-  // --- FILTER & GROUP LOGIC ---
   const groupedConstraints = useMemo(() => {
       let filtered = constraints;
-      if (scopeFilter !== "ALL") {
-          filtered = constraints.filter(c => c.scope === scopeFilter);
-      }
+      if (scopeFilter !== "ALL") filtered = constraints.filter(c => c.scope === scopeFilter);
       const groups = {};
       filtered.forEach(c => {
           if (!groups[c.scope]) groups[c.scope] = [];
@@ -517,15 +414,9 @@ export default function ConstraintOverview() {
       <div style={styles.controlsBar}>
           <div style={styles.filterContainer}>
               <label style={{fontSize:'0.9rem', fontWeight:'600'}}>Filter by Scope:</label>
-              <select
-                style={{...styles.select, width:'auto', minWidth:'200px'}}
-                value={scopeFilter}
-                onChange={e => setScopeFilter(e.target.value)}
-              >
+              <select style={{...styles.select, width:'auto', minWidth:'200px'}} value={scopeFilter} onChange={e => setScopeFilter(e.target.value)}>
                   <option value="ALL">All Scopes</option>
-                  {Object.keys(SCOPE_CATEGORIES).map(scope => (
-                      <option key={scope} value={scope}>{scope}</option>
-                  ))}
+                  {Object.keys(SCOPE_CATEGORIES).map(scope => (<option key={scope} value={scope}>{scope}</option>))}
               </select>
           </div>
       </div>
@@ -545,12 +436,14 @@ export default function ConstraintOverview() {
                     <table style={styles.table}>
                         <thead style={{background:'#f8fafc'}}>
                         <tr>
-                            <th style={styles.th}>Rule Name</th>
-                            <th style={styles.th}>Target</th>
-                            <th style={styles.th}>Description</th>
-                            <th style={styles.th}>Date of Creation</th>
-                            <th style={styles.th}>Status</th>
-                            <th style={styles.th}>Action</th>
+                            {/* ✅ EXPLICIT WIDTHS TO ENSURE CONSISTENCY */}
+                            <th style={{...styles.th, width: '16%'}}>Rule Name</th>
+                            <th style={{...styles.th, width: '18%'}}>Scope & Target</th>
+                            <th style={{...styles.th, width: '28%'}}>Description</th>
+                            <th style={{...styles.th, width: '12%'}}>Validity Window</th>
+                            <th style={{...styles.th, width: '10%'}}>Created On</th>
+                            <th style={{...styles.th, width: '8%', textAlign: 'center'}}>Status</th>
+                            <th style={{...styles.th, width: '8%', textAlign: 'right'}}>Action</th>
                         </tr>
                         </thead>
                         <tbody>
@@ -565,16 +458,24 @@ export default function ConstraintOverview() {
                                     <div style={{fontSize:'0.8rem', color:'#64748b'}}>{c.category}</div>
                                 </td>
                                 <td style={styles.td}>
-                                    <div style={{fontSize:'0.9rem', fontWeight:'500'}}>{isGlobal ? "Global / All" : targetName}</div>
+                                    <span style={{...styles.badge, background:'#e2e8f0', color:'#475569'}}>{c.scope}</span>
+                                    {!isGlobal && <div style={{marginTop:'4px', fontSize:'0.9rem', fontWeight:'500'}}>{targetName}</div>}
                                 </td>
                                 <td style={styles.td}>
                                     <div style={{fontSize:'0.9rem', color:'#334155', lineHeight:'1.4'}}>
                                         "{c.rule_text}"
                                     </div>
-                                    {c.valid_from && (
-                                        <div style={{fontSize:'0.8rem', color:'#64748b', marginTop:'4px'}}>
-                                            📅 {formatDate(c.valid_from)} → {formatDate(c.valid_to)}
+                                </td>
+                                {/* ✅ SEPARATE VALIDITY COLUMN */}
+                                <td style={styles.td}>
+                                    {c.valid_from ? (
+                                        <div style={{fontSize:'0.85rem', color:'#475569', fontWeight: '500'}}>
+                                            {formatDate(c.valid_from)} <br/>
+                                            <span style={{color:'#94a3b8', fontSize:'0.75rem'}}>to</span> <br/>
+                                            {formatDate(c.valid_to)}
                                         </div>
+                                    ) : (
+                                        <span style={{color: '#94a3b8', fontSize: '0.85rem'}}>Always Active</span>
                                     )}
                                 </td>
                                 <td style={styles.td}>
@@ -582,7 +483,7 @@ export default function ConstraintOverview() {
                                         {formatGermanDate(c.created_at || c.createdAt)}
                                     </div>
                                 </td>
-                                <td style={styles.td}>
+                                <td style={{...styles.td, textAlign: 'center'}}>
                                     <span style={{
                                         ...styles.badge,
                                         background: c.is_enabled ? '#dcfce7' : '#f1f5f9',
@@ -591,8 +492,8 @@ export default function ConstraintOverview() {
                                         {c.is_enabled ? "Active" : "Disabled"}
                                     </span>
                                 </td>
-                                <td style={styles.td}>
-                                    <div style={styles.actionContainer}>
+                                <td style={{...styles.td, textAlign: 'right'}}>
+                                    <div style={{display:'flex', gap:'5px', justifyContent:'flex-end'}}>
                                         <button style={{...styles.actionBtn, ...styles.editBtn}} onClick={() => openEdit(c)}>Edit</button>
                                         <button style={{...styles.actionBtn, ...styles.delBtn}} onClick={() => confirmDelete(c)}>Delete</button>
                                     </div>
@@ -616,18 +517,11 @@ export default function ConstraintOverview() {
                 <button onClick={() => setModalOpen(false)} style={{border:'none', background:'transparent', fontSize:'1.5rem', cursor:'pointer', color:'#94a3b8'}}>×</button>
              </div>
 
-             {/* 1. NAME */}
              <div style={styles.formGroup}>
                 <label style={styles.label}>Rule Name</label>
-                <input
-                  style={styles.input}
-                  placeholder="e.g. Winter Semester Dates"
-                  value={draft.name}
-                  onChange={e => setDraft({...draft, name: e.target.value})}
-                />
+                <input style={styles.input} placeholder="e.g. Winter Semester Dates" value={draft.name} onChange={e => setDraft({...draft, name: e.target.value})} />
              </div>
 
-             {/* 2. CONTEXT */}
              <div style={styles.formRow}>
                <div style={{flex:1}}>
                   <label style={styles.label}>Scope (Who does this apply to?)</label>
@@ -644,30 +538,21 @@ export default function ConstraintOverview() {
                </div>
              </div>
 
-             {/* 3. BUILDER */}
              <div style={styles.builderBox}>
                 <div style={{marginBottom:'15px'}}>
                     <label style={styles.label}>Rule Category</label>
                     <select style={styles.select} value={draft.category} onChange={e => handleCategoryChange(e.target.value)}>
-                        {currentCategories.map(opt => (
-                            <option key={opt.value} value={opt.value}>{opt.label}</option>
-                        ))}
+                        {currentCategories.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                     </select>
                 </div>
-
                 <div style={{background:'white', padding:'15px', borderRadius:'8px', border:'1px solid #e2e8f0'}}>
                     {renderBuilderInputs()}
                 </div>
              </div>
 
-             {/* 4. RESULT */}
              <div style={styles.generatedBox}>
                 <label style={{...styles.label, color:'#1e40af', fontSize:'0.85rem'}}>Generated Rule Description</label>
-                <textarea
-                  style={styles.generatedText}
-                  value={draft.rule_text}
-                  onChange={e => setDraft({...draft, rule_text: e.target.value})}
-                />
+                <textarea style={styles.generatedText} value={draft.rule_text} onChange={e => setDraft({...draft, rule_text: e.target.value})} />
                 <div style={{fontSize:'0.8rem', color:'#64748b', marginTop:'6px', display:'flex', justifyContent:'space-between'}}>
                     <label style={{cursor:'pointer', fontWeight:'600', color:'#0f172a', display:'flex', alignItems:'center', gap:'6px'}}>
                         <input type="checkbox" checked={draft.is_enabled} onChange={e => setDraft({...draft, is_enabled: e.target.checked})} />
@@ -676,7 +561,6 @@ export default function ConstraintOverview() {
                 </div>
              </div>
 
-             {/* 5. GENERIC VALIDITY (Only shown if NOT Holiday) */}
              {showGenericValidity && (
                  <div style={{marginTop:'20px', borderTop:'1px solid #e2e8f0', paddingTop:'15px'}}>
                      <div style={styles.sectionLabel}>Validity Window (Optional)</div>
@@ -715,6 +599,7 @@ export default function ConstraintOverview() {
   );
 }
 
+// ✅ DELETE MODAL: Fixed Pacing and Box Model Styling
 function DeleteConfirmationModal({ title, msg, itemName, onClose, onConfirm }) {
     const [input, setInput] = useState("");
     const isMatch = input === "DELETE";
@@ -722,21 +607,26 @@ function DeleteConfirmationModal({ title, msg, itemName, onClose, onConfirm }) {
     return (
         <div style={styles.overlay}>
             <div style={{...styles.modal, width:'450px', maxHeight:'none'}}>
-                <h3 style={{ marginTop: 0, color: "#991b1b" }}>{title}</h3>
-                <p style={{ color: "#4b5563", marginBottom: "20px", lineHeight:'1.5' }}>
-                    {msg} <br/>
-                    {itemName && <strong>{itemName}</strong>}
+                <h3 style={{ marginTop: 0, color: "#991b1b", marginBottom: "15px" }}>{title}</h3>
+
+                <p style={{ color: "#4b5563", marginBottom: "25px", lineHeight:'1.5' }}>
+                    {msg}
+                    {itemName && <strong style={{display: 'block', marginTop: '10px'}}>{itemName}</strong>}
                 </p>
-                <p style={{ fontSize: "0.9rem", fontWeight: "bold", marginBottom: "8px", color:'#374151' }}>
-                    Type "DELETE" to confirm:
-                </p>
-                <input
-                    style={styles.input}
-                    value={input}
-                    onChange={e => setInput(e.target.value)}
-                    placeholder="DELETE"
-                />
-                <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+
+                <div style={{ background: "#fef2f2", padding: "15px", borderRadius: "8px", border: "1px solid #fecaca", marginBottom: "25px" }}>
+                    <p style={{ fontSize: "0.9rem", fontWeight: "bold", margin: "0 0 10px 0", color:'#991b1b' }}>
+                        Type "DELETE" to confirm:
+                    </p>
+                    <input
+                        style={{...styles.input, marginBottom: 0, borderColor: '#fca5a5'}}
+                        value={input}
+                        onChange={e => setInput(e.target.value)}
+                        placeholder="DELETE"
+                    />
+                </div>
+
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px" }}>
                     <button style={{ ...styles.btn, background: "#e5e7eb", color: "#374151" }} onClick={onClose}>Cancel</button>
                     <button
                         disabled={!isMatch}
