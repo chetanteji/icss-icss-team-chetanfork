@@ -493,22 +493,23 @@ function ProgramWorkspace({ program, lecturers, specializations, modules, onBack
       </div>
 
       <div style={styles.tabContainer}>
-        {["INFO", "SPECS", "MODULES", "TIMETABLE"].map(t => (
-            <div
-                key={t}
-                style={{ ...styles.tab, ...(activeTab === t ? styles.activeTab : {}) }}
-                onClick={() => setActiveTab(t)}
-            >
-               {t === "INFO"
-  ? "General Info"
-  : t === "SPECS"
-  ? `Specializations (${specializations.length})`
-  : t === "MODULES"
-  ? `Modules (${modules.length})`
-  : "Timetable"}
+  {["INFO", "SPECS", "MODULES", "TIMETABLE"].map(t => (
+    <div
+      key={t}
+      style={{ ...styles.tab, ...(activeTab === t ? styles.activeTab : {}) }}
+      onClick={() => setActiveTab(t)}
+    >
+      {t === "INFO"
+        ? "General Info"
+        : t === "SPECS"
+        ? `Specializations (${specializations.length})`
+        : t === "MODULES"
+        ? `Modules (${modules.length})`
+        : "Timetable"}
+    </div>
+  ))}
 </div>
-        ))}
-      </div>
+
 
       <div style={{ background: "white", padding: "30px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
 
@@ -653,6 +654,7 @@ function ProgramWorkspace({ program, lecturers, specializations, modules, onBack
         {activeTab === "TIMETABLE" && (
   <HoSPTimetable programs={[program]} currentUserRole={currentUserRole} />
 )}
+
 
 
       {showDeleteModal && (
