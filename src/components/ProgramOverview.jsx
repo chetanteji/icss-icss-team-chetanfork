@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import api from "../api";
+import HoSPTimetable from "./HoSPTimetable";
+
 
 const role = (localStorage.getItem("userRole") || "").toLowerCase();
 
@@ -94,7 +96,6 @@ export default function ProgramOverview({ initialData, clearInitialData, current
   const [specializations, setSpecializations] = useState([]);
   const [modules, setModules] = useState([]);
 
-
   // ✅ ROLE-BASED PERMISSIONS (Lowercase FIX)
   const role = currentUserRole?.toLowerCase();
   const isPM = ["admin", "pm"].includes(role);
@@ -174,6 +175,8 @@ export default function ProgramOverview({ initialData, clearInitialData, current
           refreshSpecs={() => refreshNestedData(selectedProgram.id)}
           onUpdateProgram={(updated) => setSelectedProgram(updated)}
           canEdit={canManageProgram(selectedProgram)}
+          currentUserRole={currentUserRole}
+
         />
       )}
     </div>
@@ -361,7 +364,7 @@ function ProgramList({ programs, lecturers, onSelect, refresh, isPM, canManagePr
   );
 }
 
-function ProgramWorkspace({ program, lecturers, specializations, modules, onBack, refreshSpecs, onUpdateProgram, canEdit }) {
+function ProgramWorkspace({ program, lecturers, specializations, modules, onBack, refreshSpecs, onUpdateProgram, canEdit, currentUserRole  }) {
   const [activeTab, setActiveTab] = useState("INFO");
   const [isEditing, setIsEditing] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -490,14 +493,20 @@ function ProgramWorkspace({ program, lecturers, specializations, modules, onBack
       </div>
 
       <div style={styles.tabContainer}>
-        {["INFO", "SPECS", "MODULES"].map(t => (
+        {["INFO", "SPECS", "MODULES", "TIMETABLE"].map(t => (
             <div
                 key={t}
                 style={{ ...styles.tab, ...(activeTab === t ? styles.activeTab : {}) }}
                 onClick={() => setActiveTab(t)}
             >
-                {t === "INFO" ? "General Info" : t === "SPECS" ? `Specializations (${specializations.length})` : `Modules (${modules.length})`}
-            </div>
+               {t === "INFO"
+  ? "General Info"
+  : t === "SPECS"
+  ? `Specializations (${specializations.length})`
+  : t === "MODULES"
+  ? `Modules (${modules.length})`
+  : "Timetable"}
+</div>
         ))}
       </div>
 
@@ -640,6 +649,11 @@ function ProgramWorkspace({ program, lecturers, specializations, modules, onBack
         )}
 
       </div>
+
+        {activeTab === "TIMETABLE" && (
+  <HoSPTimetable programs={[program]} currentUserRole={currentUserRole} />
+)}
+
 
       {showDeleteModal && (
         <DeleteConfirmationModal
@@ -799,6 +813,7 @@ function SpecializationsManager({ programId, specializations, refresh, canEdit }
                         </select>
                     </div>
                     <button style={{...styles.btn, ...styles.primaryBtn, height:'42px'}} onClick={handleAdd}>Add Spec</button>
+
                 </div>
             )}
 
