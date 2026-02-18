@@ -281,22 +281,22 @@ export default function LecturerOverview() {
 
 
   function openAdd() {
-    if (isLecturer || isHoSP) return;
-      setEditingId(null);
-    setDraft({
-      firstName: "",
-      lastName: "",
-      title: "Dr.",
-      employmentType: "Full time",
-      personalEmail: "",
-      mdhEmail: "",
-      phone: "",
-      location: "",
-      teachingLoad: "",
-    });
-    setFormMode("add");
+  if (isLecturer) return;
+  setEditingId(null);
+  setDraft({
+    firstName: "",
+    lastName: "",
+    title: "Dr.",
+    employmentType: "Full time",
+    personalEmail: "",
+    mdhEmail: "",
+    phone: "",
+    location: "",
+    teachingLoad: "",
+  });
+  setFormMode("add");
+}
 
-  }
 
   function openEdit(row) {
      if (isLecturer || isHoSP) return;
@@ -470,7 +470,7 @@ export default function LecturerOverview() {
     <div style={styles.container}>
       <div style={styles.header}>
         <h2 style={styles.title}>Lecturer Overview</h2>
-        {isPM && (
+        {(isPM || isHoSP) && (
   <button style={{ ...styles.btn, ...styles.primaryBtn }} onClick={openAdd}>
     + New Lecturer
   </button>
