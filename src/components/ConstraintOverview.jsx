@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import api from "../api";
 
 const styles = {
@@ -7,19 +7,30 @@ const styles = {
   title: { margin: 0, fontSize: "1.75rem", fontWeight: "700", color: "#0f172a" },
   subtitle: { margin: "5px 0 0 0", color: "#64748b", fontSize: "0.95rem" },
 
+  controlsBar: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" },
+  filterContainer: { display: "flex", gap: "10px", alignItems: "center" },
+
   btn: { padding: "10px 18px", borderRadius: "8px", border: "none", cursor: "pointer", fontSize: "0.9rem", fontWeight: "600", transition: "all 0.2s", display: "inline-flex", alignItems: "center", gap: "6px" },
   primaryBtn: { background: "#2563eb", color: "white", boxShadow: "0 2px 4px rgba(37,99,235,0.2)" },
   secondaryBtn: { background: "#f1f5f9", color: "#475569", border: "1px solid #cbd5e1" },
-  deleteBtn: { background: "#fee2e2", color: "#ef4444", padding: "6px 12px", fontSize: "0.85rem" },
-  editBtn: { background: "#f8fafc", color: "#475569", border: "1px solid #e2e8f0", padding: "6px 12px", fontSize: "0.85rem", marginRight: "6px" },
+
+  actionContainer: { display: "flex", gap: "8px", justifyContent: "flex-end" },
+  actionBtn: { padding: "4px 8px", borderRadius: "6px", border: "none", cursor: "pointer", fontSize: "0.8rem", fontWeight: "600" },
+  editBtn: { background: "#e2e8f0", color: "#475569" },
+  delBtn: { background: "#fee2e2", color: "#ef4444" },
+
+  groupSection: { marginBottom: "30px" },
+  groupHeader: { fontSize: "1.1rem", fontWeight: "700", color: "#1e293b", marginBottom: "10px", borderLeft: "4px solid #3b82f6", paddingLeft: "10px", display: "flex", alignItems: "center", gap: "10px" },
+  groupCount: { fontSize: "0.8rem", color: "#64748b", fontWeight: "500", background: "#f1f5f9", padding: "2px 8px", borderRadius: "10px" },
 
   tableContainer: { border: "1px solid #e2e8f0", borderRadius: "10px", overflow: "hidden", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" },
-  table: { width: "100%", borderCollapse: "collapse", background: "white", fontSize: "0.95rem" },
-  th: { background: "#f8fafc", padding: "14px 16px", textAlign: "left", fontSize: "0.8rem", fontWeight: "700", color: "#475569", textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: "1px solid #e2e8f0" },
-  td: { padding: "14px 16px", borderBottom: "1px solid #f1f5f9", color: "#334155" },
 
-  modalOverlay: { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(15, 23, 42, 0.6)", backdropFilter: "blur(2px)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000 },
-  modalContent: { background: "white", padding: "32px", borderRadius: "16px", width: "700px", maxWidth: "95%", maxHeight: "90vh", overflowY: "auto", boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)" },
+  table: { width: "100%", borderCollapse: "collapse", background: "white", fontSize: "0.95rem", tableLayout: "fixed" },
+  th: { background: "#f8fafc", padding: "14px 16px", textAlign: "left", fontSize: "0.8rem", fontWeight: "700", color: "#475569", textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: "1px solid #e2e8f0" },
+  td: { padding: "14px 16px", borderBottom: "1px solid #f1f5f9", color: "#334155", verticalAlign: "top", wordWrap: "break-word" },
+
+  overlay: { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 },
+  modal: { backgroundColor: "#ffffff", padding: "30px", borderRadius: "12px", width: "700px", maxWidth: "90%", maxHeight: "90vh", overflowY: "auto", boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)" },
 
   sectionLabel: { fontSize: "0.85rem", fontWeight: "700", color: "#64748b", marginBottom: "12px", textTransform: "uppercase", letterSpacing: "0.05em" },
   formRow: { display: "flex", gap: "20px", marginBottom: "16px" },
@@ -39,25 +50,27 @@ const styles = {
 };
 
 const formatDate = (isoDate) => isoDate ? isoDate.split("T")[0] : "";
+const formatGermanDate = (isoDate) => {
+    if (!isoDate) return "-";
+    const d = new Date(isoDate);
+    if (isNaN(d.getTime())) return "-";
+    return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+};
 
 const SCOPE_CATEGORIES = {
     University: [
         { value: "University Open Days", label: "University Open Days" },
         { value: "University Policy", label: "University Policy (Opening Hours)" },
-        { value: "Academic Calendar", label: "Academic Calendar (Semester Dates)" },
         { value: "Holiday", label: "Holiday / Break" },
         { value: "Time Definition", label: "Time Definition (Lecture Slots)" },
         { value: "Custom", label: "Custom" }
     ],
     Lecturer: [
-        { value: "Unavailable Days", label: "Unavailable Days" },
-        { value: "Legal Requirement", label: "Legal Requirement (Workload)" },
         { value: "Custom", label: "Custom" }
     ],
     Module: [
         { value: "Delivery Mode", label: "Delivery Mode" },
         { value: "Duration", label: "Duration" },
-        { value: "Room Requirement", label: "Room Requirement" },
         { value: "Custom", label: "Custom" }
     ],
     Group: [
@@ -82,53 +95,33 @@ export default function ConstraintOverview() {
     UNIVERSITY: [{ id: "0", name: "Entire University" }],
   });
 
-  const [roomTypes, setRoomTypes] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
 
-  // DRAFT STATE
+  const [scopeFilter, setScopeFilter] = useState("ALL");
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
+
   const [draft, setDraft] = useState({
-    name: "",
-    category: "Custom",
-    scope: "University",
-    target_id: "0",
-    valid_from: "",
-    valid_to: "",
-    rule_text: "",
-    is_enabled: true
+    name: "", category: "Custom", scope: "University", target_id: "0",
+    valid_from: "", valid_to: "", rule_text: "", is_enabled: true
   });
 
-  // BUILDER STATE
   const [builder, setBuilder] = useState({
-    day: "Friday",
-    roomType: "",
-    limit: "4 hours",
-    gap: "at least 1 hour",
-    startTime: "08:00",
-    endTime: "20:00",
-    slotDuration: "90",
-    breakDuration: "15",
-    workloadLimit: "18",
-    semesterSeason: "Winter",
-    semesterYear: new Date().getFullYear(),
-
-    deliveryMode: "Onsite",
-    holidayName: "Public Holiday",
-    customDuration: "180",
-
-    selectedDays: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+    day: "Friday", limit: "4 hours", gap: "at least 1 hour", startTime: "08:00", endTime: "20:00",
+    slotDuration: "90", breakDuration: "15", workloadLimit: "18", semesterSeason: "Winter",
+    semesterYear: new Date().getFullYear(), deliveryMode: "Onsite", holidayName: "Public Holiday",
+    customDuration: "180", selectedDays: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
   });
 
   useEffect(() => { loadData(); }, []);
 
-  // --- AUTO-GENERATOR ---
   useEffect(() => {
     if (!modalOpen) return;
 
     const targetList = targets[draft.scope.toUpperCase()] || [];
     const targetObj = targetList.find(t => String(t.id) === String(draft.target_id));
 
-    // Naming Logic
     let entity = `${draft.scope} "${targetObj ? targetObj.name : 'Unknown'}"`;
     if (draft.scope === "University") {
         if (String(draft.target_id) === "0") {
@@ -144,7 +137,6 @@ export default function ConstraintOverview() {
     let generatedText = "";
 
     switch (draft.category) {
-      // University
       case "University Open Days":
         const daysText = builder.selectedDays.length > 0 ? builder.selectedDays.join(", ") : "No Days";
         generatedText = `${entity} is open on: ${daysText}.`;
@@ -152,82 +144,79 @@ export default function ConstraintOverview() {
       case "University Policy":
         generatedText = `${entity} is open from ${builder.startTime} to ${builder.endTime}.`;
         break;
-      case "Academic Calendar":
-        generatedText = `${builder.semesterSeason} Semester ${builder.semesterYear} starts on ${draft.valid_from || '[Date]'} and ends on ${draft.valid_to || '[Date]'}.`;
-        break;
       case "Holiday":
         generatedText = `Holiday '${builder.holidayName}' is from ${draft.valid_from || '[Date]'} to ${draft.valid_to || '[Date]'}.`;
         break;
       case "Time Definition":
         generatedText = `Standard lecture slots are ${builder.slotDuration} minutes long with a ${builder.breakDuration} minute break.`;
         break;
-
-      // Lecturer
-      case "Unavailable Days":
-        generatedText = `${entity} is unavailable on ${builder.day}s.`;
-        break;
-      case "Legal Requirement":
-        generatedText = `${entity} must not exceed ${builder.workloadLimit} teaching units per week.`;
-        break;
-
-      // Module / Program
       case "Delivery Mode":
         generatedText = `${entity} must be conducted ${builder.deliveryMode}.`;
         break;
       case "Duration":
         generatedText = `${entity} has a specific duration of ${builder.customDuration} minutes.`;
         break;
-      case "Room Requirement":
-        generatedText = `${entity} requires a room of type '${builder.roomType}'.`;
+      case "Unavailable Days":
+        generatedText = `${entity} is unavailable on ${builder.day}s.`;
         break;
-
       default:
-        return;
+        if (draft.category === "Custom") {
+            if (!draft.rule_text) {
+                generatedText = "Enter custom rule description here.";
+            } else { return; }
+        }
+        break;
     }
 
-    setDraft(prev => ({ ...prev, rule_text: generatedText }));
+    if (generatedText && generatedText !== draft.rule_text) {
+        setDraft(prev => ({ ...prev, rule_text: generatedText }));
+    }
 
-  }, [
-    draft.category, draft.scope, draft.target_id, draft.valid_from, draft.valid_to,
-    builder, modalOpen, targets
-  ]);
+  }, [draft.category, draft.scope, draft.target_id, draft.valid_from, draft.valid_to, builder, modalOpen, targets, draft.rule_text]);
 
   async function loadData() {
     try {
       const [cRes, lRes, gRes, mRes, rRes, pRes] = await Promise.all([
-        api.getConstraints(),
-        api.getLecturers(),
-        api.getGroups(),
-        api.getModules(),
-        api.getRooms(),
-        api.getPrograms()
+        api.getConstraints(), api.getLecturers(), api.getGroups(),
+        api.getModules(), api.getRooms(), api.getPrograms()
       ]);
 
       setConstraints(cRes || []);
 
-      const uniqueRoomTypes = [...new Set((rRes || []).map(r => r.type))].filter(Boolean);
-      setRoomTypes(uniqueRoomTypes);
-
-      // HARDCODED LOCATIONS
       const staticLocations = ["Berlin", "Düsseldorf", "Munich"];
       const campusTargets = staticLocations.map((loc, idx) => ({
-          id: String(10000 + idx),
-          name: `Campus: ${loc}`
+          id: String(10000 + idx), name: `Campus: ${loc}`
       }));
 
+      const progs = pRes || [];
+      const programTargets = progs.map(p => ({
+          id: String(p.id), name: `[${p.degree_type || p.level || '-'}] ${p.name}`, rawName: p.name
+      })).sort((a, b) => a.rawName.localeCompare(b.rawName)).map(t => ({ id: t.id, name: t.name }));
+
+      const moduleTargets = (mRes || []).map(m => {
+          const prog = progs.find(p => p.id === m.program_id);
+          const progName = prog ? prog.name : "Unassigned";
+          return { id: String(m.module_code), name: `[${progName}] ${m.module_code} - ${m.name}`, progName, code: m.module_code };
+      }).sort((a, b) => {
+          if (a.progName === b.progName) return a.code.localeCompare(b.code, undefined, {numeric: true});
+          return a.progName.localeCompare(b.progName);
+      }).map(t => ({ id: t.id, name: t.name }));
+
+      const roomTargets = (rRes || []).map(r => ({
+          id: String(r.id), name: r.location ? `${r.location} - ${r.name}` : r.name, location: r.location || "Unknown", rawName: r.name
+      })).sort((a, b) => {
+          if (a.location === b.location) return a.rawName.localeCompare(b.rawName, undefined, {numeric: true});
+          return a.location.localeCompare(b.location);
+      }).map(t => ({ id: t.id, name: t.name }));
+
       setTargets({
-        // ALL IDs must be strings now
-        LECTURER: (lRes || []).map(x => ({ id: String(x.id), name: `${x.first_name} ${x.last_name}` })),
-        GROUP: (gRes || []).map(x => ({ id: String(x.id), name: x.name })),
-        MODULE: (mRes || []).map(x => ({ id: String(x.module_code), name: x.name })),
-        ROOM: (rRes || []).map(x => ({ id: String(x.id), name: x.name })),
-        PROGRAM: (pRes || []).map(x => ({ id: String(x.id), name: x.name })),
+        LECTURER: (lRes || []).map(x => ({ id: String(x.id), name: `${x.first_name} ${x.last_name}` })).sort((a,b) => a.name.localeCompare(b.name)),
+        GROUP: (gRes || []).map(x => ({ id: String(x.id), name: x.name })).sort((a,b) => a.name.localeCompare(b.name)),
+        MODULE: moduleTargets,
+        ROOM: roomTargets,
+        PROGRAM: programTargets,
         UNIVERSITY: [{ id: "0", name: "Entire University" }, ...campusTargets]
       });
-
-      if (uniqueRoomTypes.length > 0) {
-        setBuilder(prev => ({ ...prev, roomType: uniqueRoomTypes[0] }));
-      }
 
     } catch (e) { console.error("Load Error", e); }
   }
@@ -235,24 +224,12 @@ export default function ConstraintOverview() {
   function openAdd() {
     setEditingId(null);
     setDraft({
-      name: "", category: "University Policy", scope: "University", target_id: "0",
+      name: "", category: "Custom", scope: "University", target_id: "0",
       valid_from: "", valid_to: "", rule_text: "", is_enabled: true
     });
     setBuilder(prev => ({
-        ...prev,
-        day: "Friday",
-        limit: "4 hours",
-        gap: "at least 1 hour",
-        startTime: "08:00",
-        endTime: "20:00",
-        semesterSeason: "Winter",
-        semesterYear: new Date().getFullYear(),
-        slotDuration: "90",
-        breakDuration: "15",
-        workloadLimit: "18",
-        deliveryMode: "Onsite",
-        holidayName: "Public Holiday",
-        customDuration: "180",
+        ...prev, day: "Friday", startTime: "08:00", endTime: "20:00", slotDuration: "90", breakDuration: "15",
+        deliveryMode: "Onsite", holidayName: "Public Holiday", customDuration: "180",
         selectedDays: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
     }));
     setModalOpen(true);
@@ -261,22 +238,33 @@ export default function ConstraintOverview() {
   function openEdit(c) {
     setEditingId(c.id);
     setDraft({
-      ...c,
-      target_id: String(c.target_id || "0"),
-      valid_from: formatDate(c.valid_from),
-      valid_to: formatDate(c.valid_to)
+      name: c.name, category: c.category, scope: c.scope, target_id: String(c.target_id || "0"),
+      rule_text: c.rule_text, is_enabled: c.is_enabled,
+      valid_from: formatDate(c.valid_from), valid_to: formatDate(c.valid_to)
     });
     setModalOpen(true);
   }
 
+  const confirmDelete = (item) => {
+      setItemToDelete(item);
+      setDeleteModalOpen(true);
+  };
+
+  const handleDelete = async () => {
+      if (!itemToDelete) return;
+      try {
+          await api.deleteConstraint(itemToDelete.id);
+          setDeleteModalOpen(false);
+          setItemToDelete(null);
+          loadData();
+      } catch (e) { alert("Error deleting constraint."); }
+  };
+
   async function save() {
     try {
       const payload = {
-        ...draft,
-        // ✅ CRITICAL FIX: Send ID as String, do NOT convert to Number
-        target_id: String(draft.target_id),
-        valid_from: draft.valid_from || null,
-        valid_to: draft.valid_to || null,
+        name: draft.name, category: draft.category, scope: draft.scope, target_id: String(draft.target_id),
+        rule_text: draft.rule_text, valid_from: draft.valid_from || null, valid_to: draft.valid_to || null, is_enabled: draft.is_enabled
       };
 
       if (editingId) await api.updateConstraint(editingId, payload);
@@ -290,28 +278,20 @@ export default function ConstraintOverview() {
   const handleScopeChange = (newScope) => {
       const allowedCategories = SCOPE_CATEGORIES[newScope] || SCOPE_CATEGORIES["University"];
       const defaultCategory = allowedCategories[0].value;
-
-      setDraft({
-          ...draft,
-          scope: newScope,
-          target_id: "0",
-          category: defaultCategory
-      });
+      setDraft({ ...draft, scope: newScope, target_id: "0", category: defaultCategory });
   };
 
+  // ✅ ADDED: Missing function to handle Category dropdown changes
   const handleCategoryChange = (newCategory) => {
-    setDraft({ ...draft, category: newCategory });
+      setDraft({ ...draft, category: newCategory });
   };
 
   const toggleDay = (day) => {
       setBuilder(prev => {
           const days = prev.selectedDays.includes(day)
-            ? prev.selectedDays.filter(d => d !== day)
-            : [...prev.selectedDays, day];
-
+            ? prev.selectedDays.filter(d => d !== day) : [...prev.selectedDays, day];
           const sorter = { "Monday": 1, "Tuesday": 2, "Wednesday": 3, "Thursday": 4, "Friday": 5, "Saturday": 6, "Sunday": 7 };
           days.sort((a,b) => sorter[a] - sorter[b]);
-
           return { ...prev, selectedDays: days };
       });
   };
@@ -324,19 +304,13 @@ export default function ConstraintOverview() {
                 <div style={styles.checkboxGrid}>
                     {DAYS_OF_WEEK.map(day => (
                         <label key={day} style={styles.checkboxLabel}>
-                            <input
-                                type="checkbox"
-                                checked={builder.selectedDays.includes(day)}
-                                onChange={() => toggleDay(day)}
-                            />
-                            {day}
+                            <input type="checkbox" checked={builder.selectedDays.includes(day)} onChange={() => toggleDay(day)} /> {day}
                         </label>
                     ))}
                 </div>
             </div>
         );
     }
-
     if (draft.category === "University Policy") {
         return (
             <div style={{display:'flex', gap:'12px', alignItems:'center'}}>
@@ -347,36 +321,6 @@ export default function ConstraintOverview() {
             </div>
         );
     }
-
-    if (draft.category === "Academic Calendar") {
-        return (
-            <div>
-                <div style={{display:'flex', gap:'12px', alignItems:'center', marginBottom:'10px'}}>
-                    <select style={{...styles.select, width:'auto'}} value={builder.semesterSeason} onChange={e => setBuilder({...builder, semesterSeason: e.target.value})}>
-                        <option value="Winter">Winter</option>
-                        <option value="Summer">Summer</option>
-                    </select>
-                    <select style={{...styles.select, width:'auto'}} value={builder.semesterYear} onChange={e => setBuilder({...builder, semesterYear: e.target.value})}>
-                        {[0,1,2,3].map(i => {
-                            const y = new Date().getFullYear() + i;
-                            return <option key={y} value={y}>{y}</option>;
-                        })}
-                    </select>
-                </div>
-                <div style={styles.formRow}>
-                   <div style={{flex:1}}>
-                     <label style={styles.label}>Start Date</label>
-                     <input type="date" style={styles.input} value={draft.valid_from} onChange={e => setDraft({...draft, valid_from: e.target.value})} />
-                   </div>
-                   <div style={{flex:1}}>
-                     <label style={styles.label}>End Date</label>
-                     <input type="date" style={styles.input} value={draft.valid_to} onChange={e => setDraft({...draft, valid_to: e.target.value})} />
-                   </div>
-                </div>
-            </div>
-        );
-    }
-
     if (draft.category === "Holiday") {
         return (
             <div>
@@ -397,35 +341,21 @@ export default function ConstraintOverview() {
             </div>
         );
     }
-
     if (draft.category === "Time Definition") {
         return (
             <div style={{display:'flex', gap:'15px', alignItems:'center', flexWrap:'wrap'}}>
                 <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
                     <span>Slot Duration:</span>
                     <select style={{...styles.select, width:'auto'}} value={builder.slotDuration} onChange={e => setBuilder({...builder, slotDuration: e.target.value})}>
-                        <option value="45">45 mins</option>
-                        <option value="60">60 mins</option>
-                        <option value="90">90 mins</option>
+                        <option value="45">45 mins</option><option value="60">60 mins</option><option value="90">90 mins</option>
                     </select>
                 </div>
                 <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
                     <span>Break:</span>
                     <select style={{...styles.select, width:'auto'}} value={builder.breakDuration} onChange={e => setBuilder({...builder, breakDuration: e.target.value})}>
-                        <option value="0">None</option>
-                        <option value="15">15 mins</option>
-                        <option value="30">30 mins</option>
+                        <option value="0">None</option><option value="15">15 mins</option><option value="30">30 mins</option>
                     </select>
                 </div>
-            </div>
-        );
-    }
-    if (draft.category === "Legal Requirement") {
-        return (
-            <div style={{display:'flex', gap:'12px', alignItems:'center'}}>
-                <span>Max Weekly Workload:</span>
-                <input type="number" style={{...styles.input, width:'100px'}} value={builder.workloadLimit} onChange={e => setBuilder({...builder, workloadLimit: e.target.value})} />
-                <span>Teaching Units (UE)</span>
             </div>
         );
     }
@@ -434,9 +364,7 @@ export default function ConstraintOverview() {
             <div style={{display:'flex', gap:'12px', alignItems:'center'}}>
                 <span>Mode:</span>
                 <select style={{...styles.select, width:'auto'}} value={builder.deliveryMode} onChange={e => setBuilder({...builder, deliveryMode: e.target.value})}>
-                    <option value="Onsite">Onsite (In Person)</option>
-                    <option value="Online">Online (Remote)</option>
-                    <option value="Hybrid">Hybrid</option>
+                    <option value="Onsite">Onsite (In Person)</option><option value="Online">Online (Remote)</option><option value="Hybrid">Hybrid</option>
                 </select>
             </div>
         );
@@ -460,26 +388,22 @@ export default function ConstraintOverview() {
             </div>
         );
     }
-    if (draft.category === "Room Requirement") {
-        return (
-            <div style={{display:'flex', gap:'12px', alignItems:'center'}}>
-                <span>Requires a room of type:</span>
-                <select style={{...styles.select, width:'auto'}} value={builder.roomType} onChange={e => setBuilder({...builder, roomType: e.target.value})}>
-                    {roomTypes.length > 0 ? (
-                        roomTypes.map(r => <option key={r} value={r}>{r}</option>)
-                    ) : (
-                        <option disabled>No room types found</option>
-                    )}
-                </select>
-            </div>
-        );
-    }
-
     return <div style={{color:'#64748b', fontStyle:'italic'}}>Use the text box below to describe a custom rule.</div>;
   };
 
   const currentCategories = SCOPE_CATEGORIES[draft.scope] || SCOPE_CATEGORIES["University"];
-  const showGenericValidity = !["Academic Calendar", "Holiday"].includes(draft.category);
+  const showGenericValidity = !["Holiday"].includes(draft.category);
+
+  const groupedConstraints = useMemo(() => {
+      let filtered = constraints;
+      if (scopeFilter !== "ALL") filtered = constraints.filter(c => c.scope === scopeFilter);
+      const groups = {};
+      filtered.forEach(c => {
+          if (!groups[c.scope]) groups[c.scope] = [];
+          groups[c.scope].push(c);
+      });
+      return groups;
+  }, [constraints, scopeFilter]);
 
   return (
     <div style={styles.container}>
@@ -491,87 +415,115 @@ export default function ConstraintOverview() {
         <button style={{...styles.btn, ...styles.primaryBtn}} onClick={openAdd}>+ New Rule</button>
       </div>
 
-      <div style={styles.tableContainer}>
-        <table style={styles.table}>
-            <thead style={{background:'#f8fafc'}}>
-            <tr>
-                <th style={styles.th}>Rule Name</th>
-                <th style={styles.th}>Scope & Target</th>
-                <th style={styles.th}>Description</th>
-                <th style={styles.th}>Status</th>
-                <th style={styles.th}>Action</th>
-            </tr>
-            </thead>
-            <tbody>
-            {constraints.length === 0 && (
-                <tr><td colSpan="5" style={{...styles.td, textAlign:'center', color:'#94a3b8', padding:'30px'}}>No rules defined yet.</td></tr>
-            )}
-            {constraints.map(c => {
-                const targetName = (targets[c.scope?.toUpperCase()] || []).find(t => String(t.id) === String(c.target_id))?.name || "All";
-                const isGlobal = String(c.target_id) === "0";
-
-                return (
-                <tr key={c.id}>
-                    <td style={styles.td}>
-                        <div style={{fontWeight:'600', color:'#0f172a'}}>{c.name}</div>
-                        <div style={{fontSize:'0.8rem', color:'#64748b'}}>{c.category}</div>
-                    </td>
-                    <td style={styles.td}>
-                        <span style={{...styles.badge, background:'#e2e8f0', color:'#475569'}}>{c.scope}</span>
-                        {!isGlobal && <div style={{marginTop:'4px', fontSize:'0.9rem', fontWeight:'500'}}>{targetName}</div>}
-                    </td>
-                    <td style={styles.td}>
-                        <div style={{fontSize:'0.9rem', color:'#334155', lineHeight:'1.4'}}>
-                            "{c.rule_text}"
-                        </div>
-                        {c.valid_from && (
-                            <div style={{fontSize:'0.8rem', color:'#64748b', marginTop:'4px'}}>
-                                📅 {formatDate(c.valid_from)} → {formatDate(c.valid_to)}
-                            </div>
-                        )}
-                    </td>
-                    <td style={styles.td}>
-                        <span style={{
-                            ...styles.badge,
-                            background: c.is_enabled ? '#dcfce7' : '#f1f5f9',
-                            color: c.is_enabled ? '#166534' : '#94a3b8'
-                        }}>
-                            {c.is_enabled ? "Active" : "Disabled"}
-                        </span>
-                    </td>
-                    <td style={styles.td}>
-                        <div style={{display:'flex'}}>
-                            <button style={{...styles.btn, ...styles.editBtn}} onClick={() => openEdit(c)}>Edit</button>
-                            <button style={{...styles.btn, ...styles.deleteBtn}} onClick={() => api.deleteConstraint(c.id).then(loadData)}>Delete</button>
-                        </div>
-                    </td>
-                </tr>
-                );
-            })}
-            </tbody>
-        </table>
+      <div style={styles.controlsBar}>
+          <div style={styles.filterContainer}>
+              <label style={{fontSize:'0.9rem', fontWeight:'600'}}>Filter by Scope:</label>
+              <select style={{...styles.select, width:'auto', minWidth:'200px'}} value={scopeFilter} onChange={e => setScopeFilter(e.target.value)}>
+                  <option value="ALL">All Scopes</option>
+                  {Object.keys(SCOPE_CATEGORIES).map(scope => (<option key={scope} value={scope}>{scope}</option>))}
+              </select>
+          </div>
       </div>
 
+      {Object.keys(groupedConstraints).length === 0 ? (
+          <div style={{padding:'40px', textAlign:'center', color:'#94a3b8', background:'#f8fafc', borderRadius:'10px'}}>
+              No rules found matching your filter.
+          </div>
+      ) : (
+          Object.keys(groupedConstraints).sort().map(scope => (
+              <div key={scope} style={styles.groupSection}>
+                  <div style={styles.groupHeader}>
+                      {scope}
+                      <span style={styles.groupCount}>{groupedConstraints[scope].length}</span>
+                  </div>
+                  <div style={styles.tableContainer}>
+                    <table style={styles.table}>
+                        <thead style={{background:'#f8fafc'}}>
+                        <tr>
+                            <th style={{...styles.th, width: '16%'}}>Rule Name</th>
+                            <th style={{...styles.th, width: '18%'}}>Scope & Target</th>
+                            <th style={{...styles.th, width: '28%'}}>Description</th>
+                            <th style={{...styles.th, width: '12%'}}>Validity Window</th>
+                            <th style={{...styles.th, width: '10%'}}>Created On</th>
+                            <th style={{...styles.th, width: '8%', textAlign: 'center'}}>Status</th>
+                            <th style={{...styles.th, width: '8%', textAlign: 'right'}}>Action</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {groupedConstraints[scope].map(c => {
+                            const targetName = (targets[c.scope?.toUpperCase()] || []).find(t => String(t.id) === String(c.target_id))?.name || "All";
+                            const isGlobal = String(c.target_id) === "0";
+
+                            return (
+                            <tr key={c.id}>
+                                <td style={styles.td}>
+                                    <div style={{fontWeight:'600', color:'#0f172a'}}>{c.name}</div>
+                                    <div style={{fontSize:'0.8rem', color:'#64748b'}}>{c.category}</div>
+                                </td>
+                                <td style={styles.td}>
+                                    <span style={{...styles.badge, background:'#e2e8f0', color:'#475569'}}>{c.scope}</span>
+                                    {!isGlobal && <div style={{marginTop:'4px', fontSize:'0.9rem', fontWeight:'500'}}>{targetName}</div>}
+                                </td>
+                                <td style={styles.td}>
+                                    <div style={{fontSize:'0.9rem', color:'#334155', lineHeight:'1.4'}}>
+                                        "{c.rule_text}"
+                                    </div>
+                                </td>
+                                <td style={styles.td}>
+                                    {c.valid_from ? (
+                                        <div style={{fontSize:'0.85rem', color:'#475569', fontWeight: '500'}}>
+                                            {formatDate(c.valid_from)} <br/>
+                                            <span style={{color:'#94a3b8', fontSize:'0.75rem'}}>to</span> <br/>
+                                            {formatDate(c.valid_to)}
+                                        </div>
+                                    ) : (
+                                        <span style={{color: '#94a3b8', fontSize: '0.85rem'}}>Always Active</span>
+                                    )}
+                                </td>
+                                <td style={styles.td}>
+                                    <div style={{fontSize:'0.85rem', color:'#64748b'}}>
+                                        {formatGermanDate(c.created_at || c.createdAt)}
+                                    </div>
+                                </td>
+                                <td style={{...styles.td, textAlign: 'center'}}>
+                                    <span style={{
+                                        ...styles.badge,
+                                        background: c.is_enabled ? '#dcfce7' : '#f1f5f9',
+                                        color: c.is_enabled ? '#166534' : '#94a3b8'
+                                    }}>
+                                        {c.is_enabled ? "Active" : "Disabled"}
+                                    </span>
+                                </td>
+                                <td style={{...styles.td, textAlign: 'right'}}>
+                                    <div style={{display:'flex', gap:'5px', justifyContent:'flex-end'}}>
+                                        <button style={{...styles.actionBtn, ...styles.editBtn}} onClick={() => openEdit(c)}>Edit</button>
+                                        <button style={{...styles.actionBtn, ...styles.delBtn}} onClick={() => confirmDelete(c)}>Delete</button>
+                                    </div>
+                                </td>
+                            </tr>
+                            );
+                        })}
+                        </tbody>
+                    </table>
+                  </div>
+              </div>
+          ))
+      )}
+
+      {/* --- ADD/EDIT MODAL --- */}
       {modalOpen && (
-        <div style={styles.modalOverlay}>
-          <div style={styles.modalContent}>
+        <div style={styles.overlay}>
+          <div style={styles.modal}>
              <div style={{display:'flex', justifyContent:'space-between', marginBottom:'20px'}}>
                 <h3 style={{margin:0, fontSize:'1.25rem', color:'#0f172a'}}>{editingId ? "Edit Rule" : "Create New Rule"}</h3>
                 <button onClick={() => setModalOpen(false)} style={{border:'none', background:'transparent', fontSize:'1.5rem', cursor:'pointer', color:'#94a3b8'}}>×</button>
              </div>
 
-             {/* 1. NAME */}
              <div style={styles.formGroup}>
                 <label style={styles.label}>Rule Name</label>
-                <input
-                  style={styles.input}
-                  placeholder="e.g. Winter Semester Dates"
-                  value={draft.name}
-                  onChange={e => setDraft({...draft, name: e.target.value})}
-                />
+                <input style={styles.input} placeholder="e.g. Winter Semester Dates" value={draft.name} onChange={e => setDraft({...draft, name: e.target.value})} />
              </div>
 
-             {/* 2. CONTEXT */}
              <div style={styles.formRow}>
                <div style={{flex:1}}>
                   <label style={styles.label}>Scope (Who does this apply to?)</label>
@@ -588,30 +540,21 @@ export default function ConstraintOverview() {
                </div>
              </div>
 
-             {/* 3. BUILDER */}
              <div style={styles.builderBox}>
                 <div style={{marginBottom:'15px'}}>
                     <label style={styles.label}>Rule Category</label>
                     <select style={styles.select} value={draft.category} onChange={e => handleCategoryChange(e.target.value)}>
-                        {currentCategories.map(opt => (
-                            <option key={opt.value} value={opt.value}>{opt.label}</option>
-                        ))}
+                        {currentCategories.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                     </select>
                 </div>
-
                 <div style={{background:'white', padding:'15px', borderRadius:'8px', border:'1px solid #e2e8f0'}}>
                     {renderBuilderInputs()}
                 </div>
              </div>
 
-             {/* 4. RESULT */}
              <div style={styles.generatedBox}>
                 <label style={{...styles.label, color:'#1e40af', fontSize:'0.85rem'}}>Generated Rule Description</label>
-                <textarea
-                  style={styles.generatedText}
-                  value={draft.rule_text}
-                  onChange={e => setDraft({...draft, rule_text: e.target.value})}
-                />
+                <textarea style={styles.generatedText} value={draft.rule_text} onChange={e => setDraft({...draft, rule_text: e.target.value})} />
                 <div style={{fontSize:'0.8rem', color:'#64748b', marginTop:'6px', display:'flex', justifyContent:'space-between'}}>
                     <label style={{cursor:'pointer', fontWeight:'600', color:'#0f172a', display:'flex', alignItems:'center', gap:'6px'}}>
                         <input type="checkbox" checked={draft.is_enabled} onChange={e => setDraft({...draft, is_enabled: e.target.checked})} />
@@ -620,7 +563,6 @@ export default function ConstraintOverview() {
                 </div>
              </div>
 
-             {/* 5. GENERIC VALIDITY (Only shown if NOT Academic Calendar/Holiday) */}
              {showGenericValidity && (
                  <div style={{marginTop:'20px', borderTop:'1px solid #e2e8f0', paddingTop:'15px'}}>
                      <div style={styles.sectionLabel}>Validity Window (Optional)</div>
@@ -644,6 +586,58 @@ export default function ConstraintOverview() {
           </div>
         </div>
       )}
+
+      {/* --- DELETE CONFIRMATION MODAL --- */}
+      {deleteModalOpen && (
+          <DeleteConfirmationModal
+            title="Delete Constraint?"
+            msg="Are you sure you want to delete this rule? This action cannot be undone."
+            itemName={itemToDelete?.name}
+            onClose={() => setDeleteModalOpen(false)}
+            onConfirm={handleDelete}
+          />
+      )}
     </div>
   );
+}
+
+function DeleteConfirmationModal({ title, msg, itemName, onClose, onConfirm }) {
+    const [input, setInput] = useState("");
+    const isMatch = input === "DELETE";
+
+    return (
+        <div style={styles.overlay}>
+            <div style={{...styles.modal, width:'450px', maxHeight:'none'}}>
+                <h3 style={{ marginTop: 0, color: "#991b1b", marginBottom: "15px" }}>{title}</h3>
+
+                <p style={{ color: "#4b5563", marginBottom: "25px", lineHeight:'1.5' }}>
+                    {msg}
+                    {itemName && <strong style={{display: 'block', marginTop: '10px'}}>{itemName}</strong>}
+                </p>
+
+                <div style={{ background: "#fef2f2", padding: "15px", borderRadius: "8px", border: "1px solid #fecaca", marginBottom: "25px" }}>
+                    <p style={{ fontSize: "0.9rem", fontWeight: "bold", margin: "0 0 10px 0", color:'#991b1b' }}>
+                        Type "DELETE" to confirm:
+                    </p>
+                    <input
+                        style={{...styles.input, marginBottom: 0, borderColor: '#fca5a5'}}
+                        value={input}
+                        onChange={e => setInput(e.target.value)}
+                        placeholder="DELETE"
+                    />
+                </div>
+
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px" }}>
+                    <button style={{ ...styles.btn, background: "#e5e7eb", color: "#374151" }} onClick={onClose}>Cancel</button>
+                    <button
+                        disabled={!isMatch}
+                        style={{ ...styles.btn, background: isMatch ? "#dc2626" : "#fca5a5", color: "white", cursor: isMatch ? "pointer" : "not-allowed" }}
+                        onClick={onConfirm}
+                    >
+                        Permanently Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
 }

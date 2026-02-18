@@ -1,12 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
 import api from "../api";
-import HoSPTimetable from "./HoSPTimetable";
-
-
-const role = (localStorage.getItem("userRole") || "").toLowerCase();
-
-const isPM = role === "pm" || role === "admin";
-
 
 // --- CONSTANTS ---
 const DEGREE_OPTIONS = {
@@ -100,8 +93,6 @@ export default function ProgramOverview({ initialData, clearInitialData, current
   const role = currentUserRole?.toLowerCase();
   const isPM = ["admin", "pm"].includes(role);
 
-
-
   // Helper function to determine if the user can manage a specific program
   const canManageProgram = (program) => {
     if (isPM) return true;
@@ -175,8 +166,6 @@ export default function ProgramOverview({ initialData, clearInitialData, current
           refreshSpecs={() => refreshNestedData(selectedProgram.id)}
           onUpdateProgram={(updated) => setSelectedProgram(updated)}
           canEdit={canManageProgram(selectedProgram)}
-          currentUserRole={currentUserRole}
-
         />
       )}
     </div>
@@ -194,9 +183,6 @@ function ProgramList({ programs, lecturers, onSelect, refresh, isPM, canManagePr
       total_ects: 180, level: "Bachelor", status: true,
       start_date: "", location: ""
   });
-
-
-
 
   const handleCreate = async () => {
     if(!newProg.name || !newProg.acronym) return alert("Name and Acronym are required.");
@@ -237,15 +223,9 @@ function ProgramList({ programs, lecturers, onSelect, refresh, isPM, canManagePr
                 onChange={e => setSearchQuery(e.target.value)}
             />
         </div>
-        {(isPM || role === "hosp") && (
-  <button
-    style={{ ...styles.btn, ...styles.primaryBtn }}
-    onClick={() => setShowCreate(true)}
-  >
-    + New Program
-  </button>
-)}
-
+        {isPM && (
+            <button style={{ ...styles.btn, ...styles.primaryBtn }} onClick={() => setShowCreate(true)}>+ New Program</button>
+        )}
       </div>
 
       <div style={styles.listHeader}>
@@ -364,7 +344,7 @@ function ProgramList({ programs, lecturers, onSelect, refresh, isPM, canManagePr
   );
 }
 
-function ProgramWorkspace({ program, lecturers, specializations, modules, onBack, refreshSpecs, onUpdateProgram, canEdit, currentUserRole  }) {
+function ProgramWorkspace({ program, lecturers, specializations, modules, onBack, refreshSpecs, onUpdateProgram, canEdit }) {
   const [activeTab, setActiveTab] = useState("INFO");
   const [isEditing, setIsEditing] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -476,15 +456,9 @@ function ProgramWorkspace({ program, lecturers, specializations, modules, onBack
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
         <button style={{ ...styles.btn, background:"transparent", color:"#64748b", padding:0 }} onClick={onBack}>← Back to List</button>
-        {isPM && (
-  <button
-    style={{ ...styles.btn, ...styles.dangerBtn }}
-    onClick={() => setShowDeleteModal(true)}
-  >
-    Delete Program
-  </button>
-)}
-
+        {canEdit && (
+            <button style={{ ...styles.btn, ...styles.dangerBtn }} onClick={() => setShowDeleteModal(true)}>Delete Program</button>
+        )}
       </div>
 
       <div style={{ marginBottom: "20px" }}>
@@ -493,23 +467,16 @@ function ProgramWorkspace({ program, lecturers, specializations, modules, onBack
       </div>
 
       <div style={styles.tabContainer}>
-  {["INFO", "SPECS", "MODULES", "TIMETABLE"].map(t => (
-    <div
-      key={t}
-      style={{ ...styles.tab, ...(activeTab === t ? styles.activeTab : {}) }}
-      onClick={() => setActiveTab(t)}
-    >
-      {t === "INFO"
-        ? "General Info"
-        : t === "SPECS"
-        ? `Specializations (${specializations.length})`
-        : t === "MODULES"
-        ? `Modules (${modules.length})`
-        : "Timetable"}
-    </div>
-  ))}
-</div>
-
+        {["INFO", "SPECS", "MODULES"].map(t => (
+            <div
+                key={t}
+                style={{ ...styles.tab, ...(activeTab === t ? styles.activeTab : {}) }}
+                onClick={() => setActiveTab(t)}
+            >
+                {t === "INFO" ? "General Info" : t === "SPECS" ? `Specializations (${specializations.length})` : `Modules (${modules.length})`}
+            </div>
+        ))}
+      </div>
 
       <div style={{ background: "white", padding: "30px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
 
@@ -650,12 +617,6 @@ function ProgramWorkspace({ program, lecturers, specializations, modules, onBack
         )}
 
       </div>
-
-        {activeTab === "TIMETABLE" && (
-  <HoSPTimetable programs={[program]} currentUserRole={currentUserRole} />
-)}
-
-
 
       {showDeleteModal && (
         <DeleteConfirmationModal
@@ -815,7 +776,6 @@ function SpecializationsManager({ programId, specializations, refresh, canEdit }
                         </select>
                     </div>
                     <button style={{...styles.btn, ...styles.primaryBtn, height:'42px'}} onClick={handleAdd}>Add Spec</button>
-
                 </div>
             )}
 

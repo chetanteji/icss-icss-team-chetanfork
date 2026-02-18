@@ -71,7 +71,7 @@ class Module(Base):
     assessment_type = Column(String, nullable=True)
     semester = Column(Integer, nullable=False)
     category = Column(String, nullable=True)
-    program_id = Column(Integer, ForeignKey("study_programs.id"), nullable=True)
+    program_id = Column(Integer, ForeignKey("study_programs.id", ondelete="CASCADE"), nullable=True)
 
     specializations = relationship("Specialization", secondary=module_specializations, back_populates="modules")
     lecturers = relationship("Lecturer", secondary=lecturer_modules, back_populates="modules")
@@ -80,7 +80,7 @@ class Module(Base):
 class Specialization(Base):
     __tablename__ = "specializations"
     id = Column(Integer, primary_key=True, index=True)
-    program_id = Column(Integer, ForeignKey("study_programs.id"))
+    program_id = Column(Integer, ForeignKey("study_programs.id", ondelete="CASCADE"))
     name = Column(String, nullable=False)
     acronym = Column(String, nullable=False)
     start_date = Column(String, nullable=False)
@@ -143,24 +143,19 @@ class Semester(Base):
     end_date = Column(Date, nullable=False)
 
 
-
 class OfferedModule(Base):
     __tablename__ = "offered_modules"
 
     id = Column(Integer, primary_key=True, index=True)
 
-
     module_code = Column(String, ForeignKey("modules.module_code", ondelete="CASCADE"), nullable=False)
 
-
     lecturer_id = Column(Integer, ForeignKey("lecturers.ID"), nullable=True)
-
 
     semester = Column(String, nullable=False)
 
     status = Column(String, default="Confirmed")
 
-    # Relaciones para leer nombres bonitos
     module = relationship("Module")
     lecturer = relationship("Lecturer")
 
@@ -170,20 +165,15 @@ class ScheduleEntry(Base):
 
     id = Column(Integer, primary_key=True, index=True)
 
-
     offered_module_id = Column(Integer, ForeignKey("offered_modules.id", ondelete="CASCADE"), nullable=False)
 
-
     room_id = Column(Integer, ForeignKey("rooms.id"), nullable=True)
-
 
     day_of_week = Column(String, nullable=False)  # "Monday", "Tuesday"...
     start_time = Column(String, nullable=False)  # "08:00"
     end_time = Column(String, nullable=False)  # "10:00"
 
-
     semester = Column(String, nullable=False)
 
-    
     offered_module = relationship("OfferedModule")
     room = relationship("Room")

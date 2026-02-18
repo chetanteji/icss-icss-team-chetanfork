@@ -63,14 +63,18 @@ const styles = {
   overlay: { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 },
   modal: {
     backgroundColor: "#ffffff",
-    padding: "30px",
+    // ✅ better fit on small screens
+    padding: "clamp(16px, 3vw, 30px)",
     borderRadius: "12px",
-    width: "650px",
-    maxWidth: "90%",
+    width: "min(650px, 95vw)",
+    maxWidth: "95vw",
     maxHeight: "90vh",
     overflowY: "auto",
     boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)"
   },
+  // ✅ reusable: rows in the modal will wrap nicely on small screens
+  formRow: { display: "flex", gap: "15px", flexWrap: "wrap", alignItems: "flex-start" },
+
   formGroup: { marginBottom: "15px" },
   label: { display: "block", marginBottom: "5px", fontWeight: "600", fontSize: "0.85rem", color: "#64748b" },
   input: { width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "0.95rem", boxSizing: "border-box", marginBottom: "15px" },
@@ -96,15 +100,6 @@ function safeInt(v, fallback) {
   return Number.isFinite(n) ? n : fallback;
 }
 
-function assessmentSummaryFromDraft(draft) {
-  if (Array.isArray(draft.assessments) && draft.assessments.length > 0) {
-    return draft.assessments
-      .filter(a => a?.type)
-      .map(a => `${a.type}${a.weight !== "" && a.weight !== null && a.weight !== undefined ? ` (${safeInt(a.weight, 0)}%)` : ""}`)
-      .join(", ");
-  }
-  return draft.assessment_type || "-";
-}
 function formatAssessmentForList(m) {
   const ab = Array.isArray(m?.assessment_breakdown) ? m.assessment_breakdown : [];
   if (ab.length > 0) {
@@ -134,6 +129,7 @@ export default function ModuleOverview({ onNavigate }) {
     ects: 5,
     room_type: "Lecture Classroom",
     semester: 1,
+    // (kept for backend compatibility, but NOT shown in UI)
     assessment_type: "Written Exam",
     assessments: [{ type: "Written Exam", weight: 100 }],
     category: "Core",
@@ -304,12 +300,12 @@ export default function ModuleOverview({ onNavigate }) {
   const validateBeforeSave = () => {
     if (!draft.module_code || !draft.name) {
       alert("Code and Name are required");
-      
-      if (assessmentTotal !== 100) {
-        alert(`Assessment weights must total 100%. Current: ${assessmentTotal}%`);
-        return false;
-}
+      return false;
+    }
 
+    if (assessmentTotal !== 100) {
+      alert(`Assessment weights must total 100%. Current: ${assessmentTotal}%`);
+      return false;
     }
 
     const ects = safeInt(draft.ects, 5);
@@ -443,19 +439,17 @@ export default function ModuleOverview({ onNavigate }) {
 
                 <div style={{ ...styles.centeredCell, fontWeight: 'bold', color: '#475569' }}>{m.ects}</div>
 
-               {(() => {
-  const assessmentText = formatAssessmentForList(m);
-  return (
-    <div
-      style={{ ...styles.cellText, whiteSpace: "normal", overflow: "visible", textOverflow: "clip" }}
-      title={assessmentText}
-    >
-      {assessmentText}
-    </div>
-  );
-})()}
-
-
+                {(() => {
+                  const assessmentText = formatAssessmentForList(m);
+                  return (
+                    <div
+                      style={{ ...styles.cellText, whiteSpace: "normal", overflow: "visible", textOverflow: "clip" }}
+                      title={assessmentText}
+                    >
+                      {assessmentText}
+                    </div>
+                  );
+                })()}
 
                 <div style={styles.cellText}>{m.room_type}</div>
 
@@ -477,7 +471,7 @@ export default function ModuleOverview({ onNavigate }) {
       {(formMode === "add" || formMode === "edit") && (
         <div style={styles.overlay}>
           <div style={styles.modal}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', gap: "10px" }}>
               <h3 style={{ margin: 0 }}>{formMode === "add" ? "Create Module" : "Edit Module"}</h3>
               <button
                 onClick={() => setFormMode("overview")}
@@ -487,8 +481,9 @@ export default function ModuleOverview({ onNavigate }) {
               </button>
             </div>
 
-            <div style={{ display: 'flex', gap: '15px' }}>
-              <div style={{ ...styles.formGroup, flex: 1 }}>
+            {/* ✅ wraps on small screens */}
+            <div style={styles.formRow}>
+              <div style={{ ...styles.formGroup, flex: 1, minWidth: 220 }}>
                 <label style={styles.label}>Module Code</label>
                 <input
                   style={styles.input}
@@ -498,7 +493,7 @@ export default function ModuleOverview({ onNavigate }) {
                   placeholder="CS101"
                 />
               </div>
-              <div style={{ ...styles.formGroup, flex: 2 }}>
+              <div style={{ ...styles.formGroup, flex: 2, minWidth: 260 }}>
                 <label style={styles.label}>Name</label>
                 <input
                   style={styles.input}
@@ -508,8 +503,9 @@ export default function ModuleOverview({ onNavigate }) {
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '15px' }}>
-              <div style={{ ...styles.formGroup, flex: 1 }}>
+            {/* ✅ wraps on small screens */}
+            <div style={styles.formRow}>
+              <div style={{ ...styles.formGroup, flex: 1, minWidth: 180 }}>
                 <label style={styles.label}>ECTS</label>
                 <input
                   type="number"
@@ -522,7 +518,7 @@ export default function ModuleOverview({ onNavigate }) {
                 />
               </div>
 
-              <div style={{ ...styles.formGroup, flex: 1 }}>
+              <div style={{ ...styles.formGroup, flex: 1, minWidth: 180 }}>
                 <label style={styles.label}>Semester</label>
                 <input
                   type="number"
@@ -534,7 +530,7 @@ export default function ModuleOverview({ onNavigate }) {
                 />
               </div>
 
-              <div style={{ ...styles.formGroup, flex: 1 }}>
+              <div style={{ ...styles.formGroup, flex: 1, minWidth: 200 }}>
                 <label style={styles.label}>Category</label>
                 <select
                   style={styles.select}
@@ -546,8 +542,10 @@ export default function ModuleOverview({ onNavigate }) {
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '15px' }}>
-              <div style={{ ...styles.formGroup, flex: 1 }}>
+            {/* ✅ Assessment summary REMOVED from add/edit page (no field here) */}
+
+            <div style={styles.formRow}>
+              <div style={{ ...styles.formGroup, flex: 1, minWidth: 240 }}>
                 <label style={styles.label}>Room Type</label>
                 <select
                   style={styles.select}
@@ -564,19 +562,10 @@ export default function ModuleOverview({ onNavigate }) {
                   )}
                 </select>
               </div>
-
-              <div style={{ ...styles.formGroup, flex: 1 }}>
-                <label style={styles.label}>Assessment (summary)</label>
-                <input
-                  style={styles.input}
-                  value={assessmentSummaryFromDraft(draft)}
-                  readOnly
-                />
-              </div>
             </div>
 
             <div style={styles.sectionBox}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
                 <h4 style={styles.sectionTitle}>Assessment breakdown</h4>
 
                 <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap", justifyContent: "flex-end" }}>
@@ -596,7 +585,6 @@ export default function ModuleOverview({ onNavigate }) {
                   </button>
                 </div>
               </div>
-              
 
               <div style={styles.helpText}>
                 Add one or more assessment types and set weights. Total weight MUST be 100%.
@@ -665,9 +653,11 @@ export default function ModuleOverview({ onNavigate }) {
 
             <div style={{ ...styles.formGroup, background: '#f9f9f9', padding: '15px', borderRadius: '6px', border: '1px solid #eee' }}>
               <label style={{ ...styles.label, marginBottom: '10px' }}>Linked Specializations</label>
-              <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
+
+              {/* ✅ wraps on small screens */}
+              <div style={{ display: 'flex', gap: '10px', marginBottom: '15px', flexWrap: "wrap" }}>
                 <select
-                  style={styles.select}
+                  style={{ ...styles.select, marginBottom: 0, flex: "1 1 260px", minWidth: 240 }}
                   value={selectedSpecToAdd}
                   onChange={(e) => setSelectedSpecToAdd(e.target.value)}
                 >
@@ -680,7 +670,7 @@ export default function ModuleOverview({ onNavigate }) {
                       </option>
                     ))}
                 </select>
-                <button type="button" style={{ ...styles.btn, ...styles.primaryBtn }} onClick={linkSpecToDraft}>Link</button>
+                <button type="button" style={{ ...styles.btn, ...styles.primaryBtn, flex: "0 0 auto" }} onClick={linkSpecToDraft}>Link</button>
               </div>
 
               <div style={{ maxHeight: '150px', overflowY: 'auto', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
@@ -715,7 +705,7 @@ export default function ModuleOverview({ onNavigate }) {
               </div>
             </div>
 
-            <div style={{ marginTop: '25px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+            <div style={{ marginTop: '25px', display: 'flex', justifyContent: 'flex-end', gap: '10px', flexWrap: "wrap" }}>
               <button style={{ ...styles.btn, background: '#f8f9fa', border: '1px solid #ddd' }} onClick={() => setFormMode("overview")}>Cancel</button>
               <button style={{ ...styles.btn, ...styles.primaryBtn }} onClick={save}>Save</button>
             </div>
@@ -740,7 +730,7 @@ function DeleteConfirmationModal({ moduleName, onClose, onConfirm }) {
 
   return (
     <div style={styles.overlay}>
-      <div style={{ ...styles.modal, width: '450px', maxHeight: 'none' }}>
+      <div style={{ ...styles.modal, width: 'min(450px, 95vw)', maxHeight: 'none' }}>
         <h3 style={{ marginTop: 0, color: "#991b1b" }}>⚠️ Delete Module?</h3>
         <p style={{ color: "#4b5563", marginBottom: "20px", lineHeight: '1.5' }}>
           Are you sure you want to delete <strong>{moduleName}</strong>?<br />
@@ -755,7 +745,7 @@ function DeleteConfirmationModal({ moduleName, onClose, onConfirm }) {
           onChange={e => setInput(e.target.value)}
           placeholder="DELETE"
         />
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", flexWrap: "wrap" }}>
           <button style={{ ...styles.btn, background: "#e5e7eb", color: "#374151" }} onClick={onClose}>Cancel</button>
           <button
             disabled={!isMatch}

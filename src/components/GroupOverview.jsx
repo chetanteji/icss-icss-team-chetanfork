@@ -54,6 +54,11 @@ const styles = {
     padding: "10px 15px",
     verticalAlign: "middle",
   },
+  link: {
+    color: "#007bff",
+    textDecoration: "none",
+    cursor: "pointer",
+  },
   btn: {
     padding: "6px 12px",
     borderRadius: "4px",
@@ -275,7 +280,18 @@ export default function GroupOverview() {
                 </td>
                 <td style={styles.td}>{g.size}</td>
                 <td style={styles.td}>{g.description || "-"}</td>
-                <td style={styles.td}>{g.email || "-"}</td>
+
+                {/* ✅ Clickable Group Email */}
+                <td style={styles.td}>
+                  {g.email ? (
+                    <a href={`mailto:${g.email}`} style={styles.link} title="Send email">
+                      {g.email}
+                    </a>
+                  ) : (
+                    "-"
+                  )}
+                </td>
+
                 <td style={styles.td}>{g.parentGroup || "-"}</td>
                 <td style={styles.td}>{g.program || "-"}</td>
 

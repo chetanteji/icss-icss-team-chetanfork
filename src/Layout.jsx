@@ -101,7 +101,7 @@ const Layout = ({ activeTab, setActiveTab, children, currentUserRole, setCurrent
             <>
               <div className="nav-section-title">Planning Logic</div>
               <NavLink id="constraints" label="Constraints & Rules" rolesAllowed={["admin", "pm", "hosp", "lecturer"]} />
-              <NavLink id="availabilities" label="Availability" rolesAllowed={["admin", "pm", "hosp", "lecturer"]} />
+              <NavLink id="availabilities" label="Lecturer Availability" rolesAllowed={["admin", "pm", "hosp", "lecturer"]} />
             </>
           )}
         </div>

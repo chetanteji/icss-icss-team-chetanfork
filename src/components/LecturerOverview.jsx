@@ -53,6 +53,11 @@ const styles = {
     padding: "10px 15px",
     verticalAlign: "middle",
   },
+  link: {
+    color: "#007bff",
+    textDecoration: "none",
+    cursor: "pointer",
+  },
   btn: {
     padding: "6px 12px",
     borderRadius: "4px",
@@ -504,7 +509,18 @@ export default function LecturerOverview() {
                 </td>
                 <td style={styles.td}>{l.employmentType}</td>
                 <td style={styles.td}>{l.location || "-"}</td>
-                <td style={styles.td}>{l.mdhEmail || "-"}</td>
+
+                {/* ✅ Clickable MDH Email */}
+                <td style={styles.td}>
+                  {l.mdhEmail ? (
+                    <a href={`mailto:${l.mdhEmail}`} style={styles.link} title="Send email">
+                      {l.mdhEmail}
+                    </a>
+                  ) : (
+                    "-"
+                  )}
+                </td>
+
                 <td style={styles.td}>{l.teachingLoad || "-"}</td>
 
                 {/* ✅ Modules column */}
