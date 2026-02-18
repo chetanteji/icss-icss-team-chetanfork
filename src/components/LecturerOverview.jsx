@@ -210,12 +210,6 @@ export default function LecturerOverview() {
   const [selectedModuleCodes, setSelectedModuleCodes] = useState([]);
   const [savingAssign, setSavingAssign] = useState(false);
 
-  const role = (localStorage.getItem("userRole") || "").toLowerCase();
-  const isPM = role === "pm" || role === "admin";
-  const isHoSP = role === "hosp";
-  const isLecturer = role === "lecturer";
-
-
   const [draft, setDraft] = useState({
     firstName: "",
     lastName: "",
@@ -278,29 +272,24 @@ export default function LecturerOverview() {
     loadAll();
   }, []);
 
-
-
   function openAdd() {
-  if (isLecturer) return;
-  setEditingId(null);
-  setDraft({
-    firstName: "",
-    lastName: "",
-    title: "Dr.",
-    employmentType: "Full time",
-    personalEmail: "",
-    mdhEmail: "",
-    phone: "",
-    location: "",
-    teachingLoad: "",
-  });
-  setFormMode("add");
-}
-
+    setEditingId(null);
+    setDraft({
+      firstName: "",
+      lastName: "",
+      title: "Dr.",
+      employmentType: "Full time",
+      personalEmail: "",
+      mdhEmail: "",
+      phone: "",
+      location: "",
+      teachingLoad: "",
+    });
+    setFormMode("add");
+  }
 
   function openEdit(row) {
-     if (isLecturer || isHoSP) return;
-      setEditingId(row.id);
+    setEditingId(row.id);
     setDraft({
       firstName: row.firstName || "",
       lastName: row.lastName || "",
@@ -365,8 +354,7 @@ export default function LecturerOverview() {
   }
 
   async function remove(id) {
-    if (!isPM) return;
-      if (!window.confirm("Are you sure you want to delete this lecturer?")) return;
+    if (!window.confirm("Are you sure you want to delete this lecturer?")) return;
     try {
       await api.deleteLecturer(id);
       await loadAll();
@@ -376,8 +364,7 @@ export default function LecturerOverview() {
   }
 
   async function save() {
-        if (!isPM) return;
-      if (!draft.firstName.trim() || !draft.title.trim() || !draft.mdhEmail.trim()) {
+    if (!draft.firstName.trim() || !draft.title.trim() || !draft.mdhEmail.trim()) {
       return alert("First Name, Title, and MDH Email are required.");
     }
 
@@ -470,11 +457,9 @@ export default function LecturerOverview() {
     <div style={styles.container}>
       <div style={styles.header}>
         <h2 style={styles.title}>Lecturer Overview</h2>
-        {(isPM || isHoSP) && (
-  <button style={{ ...styles.btn, ...styles.primaryBtn }} onClick={openAdd}>
-    + New Lecturer
-  </button>
-)}
+        <button style={{ ...styles.btn, ...styles.primaryBtn }} onClick={openAdd}>
+          + New Lecturer
+        </button>
       </div>
 
       <input
@@ -543,34 +528,17 @@ export default function LecturerOverview() {
                   )}
                 </td>
 
-                <td style={{ ...styles.td, textAlign: "right" }}>
-  {isPM && (
-    <>
-      <button style={{ ...styles.btn, ...styles.assignBtn }} onClick={() => openAssign(l)}>
-        Assign Modules
-      </button>
-      <button style={{ ...styles.btn, ...styles.editBtn }} onClick={() => openEdit(l)}>
-        Edit
-      </button>
-      <button style={{ ...styles.btn, ...styles.deleteBtn }} onClick={() => remove(l.id)}>
-        Delete
-      </button>
-    </>
-  )}
-
-  {isHoSP && (
-    <button style={{ ...styles.btn, ...styles.assignBtn }} onClick={() => openAssign(l)}>
-      Assign Modules
-    </button>
-  )}
-
-  {isLecturer && (
-    <span style={{ color: "#94a3b8", fontStyle: "italic" }}>
-      View only
-    </span>
-  )}
-</td>
-
+                <td style={{ ...styles.td, textAlign: "right", whiteSpace: "nowrap" }}>
+                  <button style={{ ...styles.btn, ...styles.assignBtn }} onClick={() => openAssign(l)}>
+                    Assign Modules
+                  </button>
+                  <button style={{ ...styles.btn, ...styles.editBtn }} onClick={() => openEdit(l)}>
+                    Edit
+                  </button>
+                  <button style={{ ...styles.btn, ...styles.deleteBtn }} onClick={() => remove(l.id)}>
+                    Delete
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
