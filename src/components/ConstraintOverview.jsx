@@ -13,7 +13,7 @@ const styles = {
   btn: { padding: "10px 18px", borderRadius: "8px", border: "none", cursor: "pointer", fontSize: "0.9rem", fontWeight: "600", transition: "all 0.2s", display: "inline-flex", alignItems: "center", gap: "6px" },
   primaryBtn: { background: "#2563eb", color: "white", boxShadow: "0 2px 4px rgba(37,99,235,0.2)" },
   secondaryBtn: { background: "#f1f5f9", color: "#475569", border: "1px solid #cbd5e1" },
-
+  
   actionContainer: { display: "flex", gap: "8px", justifyContent: "flex-end" },
   actionBtn: { padding: "4px 8px", borderRadius: "6px", border: "none", cursor: "pointer", fontSize: "0.8rem", fontWeight: "600" },
   editBtn: { background: "#e2e8f0", color: "#475569" },
@@ -24,7 +24,7 @@ const styles = {
   groupCount: { fontSize: "0.8rem", color: "#64748b", fontWeight: "500", background: "#f1f5f9", padding: "2px 8px", borderRadius: "10px" },
 
   tableContainer: { border: "1px solid #e2e8f0", borderRadius: "10px", overflow: "hidden", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" },
-
+  
   table: { width: "100%", borderCollapse: "collapse", background: "white", fontSize: "0.95rem", tableLayout: "fixed" },
   th: { background: "#f8fafc", padding: "14px 16px", textAlign: "left", fontSize: "0.8rem", fontWeight: "700", color: "#475569", textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: "1px solid #e2e8f0" },
   td: { padding: "14px 16px", borderBottom: "1px solid #f1f5f9", color: "#334155", verticalAlign: "top", wordWrap: "break-word" },
@@ -160,11 +160,7 @@ export default function ConstraintOverview() {
         generatedText = `${entity} is unavailable on ${builder.day}s.`;
         break;
       default:
-        if (draft.category === "Custom") {
-            if (!draft.rule_text) {
-                generatedText = "Enter custom rule description here.";
-            } else { return; }
-        }
+        // Do not generate anything for "Custom" so it stays empty for the user to type
         break;
     }
 
@@ -278,12 +274,24 @@ export default function ConstraintOverview() {
   const handleScopeChange = (newScope) => {
       const allowedCategories = SCOPE_CATEGORIES[newScope] || SCOPE_CATEGORIES["University"];
       const defaultCategory = allowedCategories[0].value;
-      setDraft({ ...draft, scope: newScope, target_id: "0", category: defaultCategory });
+      
+      //  If switching to custom, clear the text box
+      setDraft({ 
+        ...draft, 
+        scope: newScope, 
+        target_id: "0", 
+        category: defaultCategory,
+        rule_text: defaultCategory === "Custom" ? "" : draft.rule_text 
+      });
   };
 
-  // ✅ ADDED: Missing function to handle Category dropdown changes
   const handleCategoryChange = (newCategory) => {
-      setDraft({ ...draft, category: newCategory });
+      // If switching to custom, clear the text box so they can type freely
+      setDraft({ 
+        ...draft, 
+        category: newCategory, 
+        rule_text: newCategory === "Custom" ? "" : draft.rule_text 
+      });
   };
 
   const toggleDay = (day) => {
@@ -553,8 +561,24 @@ export default function ConstraintOverview() {
              </div>
 
              <div style={styles.generatedBox}>
-                <label style={{...styles.label, color:'#1e40af', fontSize:'0.85rem'}}>Generated Rule Description</label>
-                <textarea style={styles.generatedText} value={draft.rule_text} onChange={e => setDraft({...draft, rule_text: e.target.value})} />
+                <label style={{...styles.label, color:'#1e40af', fontSize:'0.85rem'}}>
+                    {draft.category === "Custom" ? "Custom Rule Description" : "Generated Rule Description"}
+                </label>
+                
+                {/* ✅ Added Placeholder and ReadOnly dynamically */}
+                <textarea 
+                  style={{
+                      ...styles.generatedText,
+                      background: draft.category === "Custom" ? "white" : "#f1f5f9",
+                      color: draft.category === "Custom" ? "#1e3a8a" : "#475569",
+                      cursor: draft.category === "Custom" ? "text" : "not-allowed"
+                  }} 
+                  value={draft.rule_text} 
+                  onChange={e => setDraft({...draft, rule_text: e.target.value})} 
+                  placeholder="Enter custom rule description here..."
+                  readOnly={draft.category !== "Custom"}
+                />
+                
                 <div style={{fontSize:'0.8rem', color:'#64748b', marginTop:'6px', display:'flex', justifyContent:'space-between'}}>
                     <label style={{cursor:'pointer', fontWeight:'600', color:'#0f172a', display:'flex', alignItems:'center', gap:'6px'}}>
                         <input type="checkbox" checked={draft.is_enabled} onChange={e => setDraft({...draft, is_enabled: e.target.checked})} />
@@ -609,12 +633,12 @@ function DeleteConfirmationModal({ title, msg, itemName, onClose, onConfirm }) {
         <div style={styles.overlay}>
             <div style={{...styles.modal, width:'450px', maxHeight:'none'}}>
                 <h3 style={{ marginTop: 0, color: "#991b1b", marginBottom: "15px" }}>{title}</h3>
-
+                
                 <p style={{ color: "#4b5563", marginBottom: "25px", lineHeight:'1.5' }}>
                     {msg}
                     {itemName && <strong style={{display: 'block', marginTop: '10px'}}>{itemName}</strong>}
                 </p>
-
+                
                 <div style={{ background: "#fef2f2", padding: "15px", borderRadius: "8px", border: "1px solid #fecaca", marginBottom: "25px" }}>
                     <p style={{ fontSize: "0.9rem", fontWeight: "bold", margin: "0 0 10px 0", color:'#991b1b' }}>
                         Type "DELETE" to confirm:
