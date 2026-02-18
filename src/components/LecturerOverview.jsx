@@ -186,7 +186,7 @@ export default function LecturerOverview() {
 
   const [customLocations, setCustomLocations] = useState([]);
 
-  // ✅ Domains now come from DB: [{id, name}]
+  // ✅ Domains from DB: [{id, name}]
   const [domains, setDomains] = useState([]);
 
   const [showDomainModal, setShowDomainModal] = useState(false);
@@ -223,8 +223,7 @@ export default function LecturerOverview() {
         phone: x.phone || "",
         location: x.location || "",
         teachingLoad: x.teaching_load || "",
-        // backend returns domain label in x.domain (from relationship/property)
-        domain: x.domain || "",
+        domain: x.domain || "", // label from backend
         domain_id: x.domain_id ?? null,
         fullName: `${x.first_name} ${x.last_name || ""}`.trim(),
       }));
@@ -281,7 +280,6 @@ export default function LecturerOverview() {
       phone: row.phone || "",
       location: row.location || "",
       teachingLoad: row.teachingLoad || "",
-      // ✅ keep domain_id in draft
       domain_id: row.domain_id != null ? String(row.domain_id) : "",
     });
     setFormMode("edit");
@@ -322,36 +320,34 @@ export default function LecturerOverview() {
     setDomainError("");
   }
 
-  // ✅ Create domain in DB, then reload domains and select it
+  // ✅ Create domain in DB, then add it to dropdown + select it
   async function confirmAddDomain() {
-  const formatted = (newDomain || "").trim();
+    const formatted = (newDomain || "").trim();
 
-  if (!formatted) {
-    setDomainError("Domain name cannot be empty.");
-    return;
+    if (!formatted) {
+      setDomainError("Domain name cannot be empty.");
+      return;
+    }
+
+    try {
+      const created = await api.createDomain({ name: formatted });
+
+      const createdObj = {
+        id: created.id,
+        name: created.name,
+      };
+
+      const next = [...domains.filter((d) => d.id !== createdObj.id), createdObj].sort((a, b) =>
+        a.name.localeCompare(b.name)
+      );
+
+      setDomains(next);
+      setDraft({ ...draft, domain_id: String(createdObj.id) });
+      closeDomainModal();
+    } catch (e) {
+      setDomainError(e.message || "Error creating domain.");
+    }
   }
-
-  try {
-    // ✅ Save to DB
-    const created = await api.createDomain({ name: formatted });
-
-    // ✅ Use returned name if backend normalized it
-    const name = (created?.name || formatted).trim();
-
-    // ✅ Update dropdown list
-    const updated = [...new Set([...domains, name])].sort((a, b) => a.localeCompare(b));
-    setDomains(updated);
-
-    // ✅ Select it in the lecturer form
-    setDraft({ ...draft, domain: name });
-
-    closeDomainModal();
-  } catch (e) {
-    // show backend detail but clean
-    setDomainError(e.message?.replace(/^400\s-\s*/, "") || "Error creating domain.");
-  }
-}
-
 
   async function remove(id) {
     if (!window.confirm("Are you sure you want to delete this lecturer?")) return;
@@ -378,7 +374,7 @@ export default function LecturerOverview() {
       phone: draft.phone.trim() || null,
       location: draft.location.trim() || null,
       teaching_load: draft.teachingLoad.trim() || null,
-      // ✅ send domain_id to backend (NOT domain string)
+      // ✅ send domain_id (not domain string)
       domain_id: draft.domain_id ? Number(draft.domain_id) : null,
     };
 
@@ -482,7 +478,11 @@ export default function LecturerOverview() {
 
             <div style={styles.formGroup}>
               <label style={styles.label}>Title</label>
-              <select style={styles.select} value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })}>
+              <select
+                style={styles.select}
+                value={draft.title}
+                onChange={(e) => setDraft({ ...draft, title: e.target.value })}
+              >
                 {TITLES.map((t) => (
                   <option key={t} value={t}>
                     {t}
@@ -540,7 +540,12 @@ export default function LecturerOverview() {
                     )}
                   </select>
 
-                  <button type="button" title="Add new location" onClick={addNewLocation} style={{ ...styles.iconBtn, background: "#e2e6ea" }}>
+                  <button
+                    type="button"
+                    title="Add new location"
+                    onClick={addNewLocation}
+                    style={{ ...styles.iconBtn, background: "#e2e6ea" }}
+                  >
                     +
                   </button>
 
@@ -575,7 +580,7 @@ export default function LecturerOverview() {
               </div>
             </div>
 
-            {/* ✅ Domain selector now uses DB domains + domain_id */}
+            {/* ✅ Domain selector uses DB domains + domain_id */}
             <div style={styles.formGroup}>
               <label style={styles.label}>Domain</label>
               <div style={{ display: "flex", gap: "5px" }}>
@@ -592,12 +597,14 @@ export default function LecturerOverview() {
                   ))}
                 </select>
 
-                <button type="button" title="Add new domain" onClick={openDomainModal} style={{ ...styles.iconBtn, background: "#e2e6ea" }}>
+                <button
+                  type="button"
+                  title="Create domain"
+                  onClick={openDomainModal}
+                  style={{ ...styles.iconBtn, background: "#e2e6ea" }}
+                >
                   +
                 </button>
-              </div>
-              <div style={styles.hint}>
-                Choose a domain from the list, or click <strong>+</strong> to create a new one.
               </div>
             </div>
 
@@ -643,7 +650,10 @@ export default function LecturerOverview() {
             </div>
 
             <div style={{ marginTop: "25px", display: "flex", justifyContent: "flex-end", gap: "10px" }}>
-              <button style={{ ...styles.btn, background: "#f8f9fa", border: "1px solid #ddd" }} onClick={() => setFormMode("overview")}>
+              <button
+                style={{ ...styles.btn, background: "#f8f9fa", border: "1px solid #ddd" }}
+                onClick={() => setFormMode("overview")}
+              >
                 Cancel
               </button>
               <button style={{ ...styles.btn, ...styles.primaryBtn }} onClick={save}>
@@ -651,11 +661,12 @@ export default function LecturerOverview() {
               </button>
             </div>
 
+            {/* ✅ Create Domain mini modal */}
             {showDomainModal && (
               <div style={styles.miniOverlay} onMouseDown={closeDomainModal}>
                 <div style={styles.miniModal} onMouseDown={(e) => e.stopPropagation()}>
                   <div style={styles.miniHeader}>
-                    <h4 style={styles.miniTitle}>Create new domain</h4>
+                    <h4 style={styles.miniTitle}>Create domain</h4>
                     <button style={styles.closeX} onClick={closeDomainModal} aria-label="Close">
                       ×
                     </button>
@@ -676,15 +687,15 @@ export default function LecturerOverview() {
                         if (e.key === "Escape") closeDomainModal();
                       }}
                       placeholder="Type a domain name..."
-
                     />
                     {domainError ? <div style={styles.dangerText}>{domainError}</div> : null}
-                   <div style={styles.hint}>Search or create a domain.</div>
-
                   </div>
 
                   <div style={styles.miniFooter}>
-                    <button style={{ ...styles.btn, background: "#fff", border: "1px solid #ddd" }} onClick={closeDomainModal}>
+                    <button
+                      style={{ ...styles.btn, background: "#fff", border: "1px solid #ddd" }}
+                      onClick={closeDomainModal}
+                    >
                       Cancel
                     </button>
                     <button style={{ ...styles.btn, ...styles.primaryBtn }} onClick={confirmAddDomain}>

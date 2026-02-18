@@ -53,6 +53,10 @@ def check_version():
 app.include_router(dev_router)
 app.include_router(auth_router)
 app.include_router(programs_router)
+
+# ✅ ADD THIS (before/after lecturers doesn't matter)
+app.include_router(domains_router)
+
 app.include_router(lecturers_router)
 app.include_router(modules_router)
 app.include_router(specializations_router)
@@ -62,9 +66,5 @@ app.include_router(constraints_router)
 app.include_router(availabilities_router)
 app.include_router(semesters_router)
 
-# ✅ ADD THIS (anywhere after app is created)
-app.include_router(domains_router)
-
-# ACTIVAMOS TUS FUNCIONALIDADES:
 app.include_router(offered_modules_router)
 app.include_router(schedule_router)
