@@ -19,7 +19,13 @@ lecturer_modules = Table(
     Column("module_code", String, ForeignKey("modules.module_code", ondelete="CASCADE"), primary_key=True),
 )
 
-
+# Association Table for Many-to-Many relationship between Lecturers and Domains
+lecturer_domains = Table(
+    "lecturer_domains",
+    Base.metadata,
+    Column("lecturer_id", Integer, ForeignKey("lecturers.ID", ondelete="CASCADE"), primary_key=True),
+    Column("domain_id", Integer, ForeignKey("domains.id", ondelete="CASCADE"), primary_key=True),
+)
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)
@@ -31,11 +37,13 @@ class User(Base):
     lecturer_profile = relationship("Lecturer")
 
 
-# ✅ DOMAINS TABLE (matches your schema)
 class Domain(Base):
     __tablename__ = "domains"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(120), unique=True, nullable=False)
+
+    # ✅ add backref
+    lecturers = relationship("Lecturer", secondary=lecturer_domains, back_populates="domains")
 
 
 class Lecturer(Base):
@@ -51,15 +59,18 @@ class Lecturer(Base):
     location = Column(String(200), nullable=True)
     teaching_load = Column(String(100), nullable=True)
 
-    # ✅ NEW: FK to domains (NO email logic)
+    # ✅ keep existing single-domain fields for now OR remove later
     domain_id = Column(Integer, ForeignKey("domains.id"), nullable=True)
     domain_rel = relationship("Domain")
 
+    # ✅ NEW multi-domain relation
+    domains = relationship("Domain", secondary=lecturer_domains, back_populates="lecturers")
+
     modules = relationship("Module", secondary=lecturer_modules, back_populates="lecturers")
 
-    # optional convenience (used by schemas response)
     @property
     def domain(self):
+        # backward compatibility: still returns the single FK domain name if set
         return self.domain_rel.name if self.domain_rel else None
 
 
