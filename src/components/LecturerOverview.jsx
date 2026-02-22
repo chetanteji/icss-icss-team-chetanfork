@@ -16,11 +16,7 @@ const styles = {
     borderBottom: "1px solid #ccc",
     paddingBottom: "15px",
   },
-  title: {
-    margin: 0,
-    fontSize: "1.5rem",
-    color: "#333",
-  },
+  title: { margin: 0, fontSize: "1.5rem", color: "#333" },
   searchBar: {
     padding: "8px 12px",
     width: "300px",
@@ -36,23 +32,10 @@ const styles = {
     border: "1px solid #ddd",
     fontSize: "0.9rem",
   },
-  thead: {
-    background: "#f2f2f2",
-    borderBottom: "2px solid #ccc",
-  },
-  th: {
-    textAlign: "left",
-    padding: "10px 15px",
-    fontWeight: "600",
-    color: "#333333",
-  },
-  tr: {
-    borderBottom: "1px solid #eee",
-  },
-  td: {
-    padding: "10px 15px",
-    verticalAlign: "middle",
-  },
+  thead: { background: "#f2f2f2", borderBottom: "2px solid #ccc" },
+  th: { textAlign: "left", padding: "10px 15px", fontWeight: "600", color: "#333333" },
+  tr: { borderBottom: "1px solid #eee" },
+  td: { padding: "10px 15px", verticalAlign: "middle" },
   btn: {
     padding: "6px 12px",
     borderRadius: "4px",
@@ -101,12 +84,7 @@ const styles = {
     boxShadow: "0 5px 15px rgba(0,0,0,0.3)",
   },
   formGroup: { marginBottom: "15px" },
-  label: {
-    display: "block",
-    marginBottom: "5px",
-    fontWeight: "bold",
-    fontSize: "0.9rem",
-  },
+  label: { display: "block", marginBottom: "5px", fontWeight: "bold", fontSize: "0.9rem" },
   input: {
     width: "100%",
     padding: "8px",
@@ -125,7 +103,29 @@ const styles = {
     background: "white",
   },
 
-  hint: { fontSize: "0.85rem", color: "#6b7280", marginTop: "8px" },
+  // Tag styles
+  tagWrap: { display: "flex", flexWrap: "wrap", gap: "6px" },
+  tag: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "6px",
+    padding: "4px 8px",
+    borderRadius: "999px",
+    background: "#eef2ff",
+    border: "1px solid #c7d2fe",
+    fontSize: "0.85rem",
+    lineHeight: 1,
+    whiteSpace: "nowrap",
+  },
+  tagX: {
+    border: "none",
+    background: "transparent",
+    cursor: "pointer",
+    fontSize: "1rem",
+    lineHeight: 1,
+    color: "#4f46e5",
+    padding: 0,
+  },
 
   miniOverlay: {
     position: "fixed",
@@ -164,18 +164,32 @@ const styles = {
     borderTop: "1px solid #eee",
     background: "#fafafa",
   },
-  closeX: {
-    border: "none",
-    background: "transparent",
-    fontSize: "1.4rem",
-    cursor: "pointer",
-    lineHeight: 1,
-  },
+  closeX: { border: "none", background: "transparent", fontSize: "1.4rem", cursor: "pointer", lineHeight: 1 },
   dangerText: { color: "#dc3545", fontSize: "0.85rem", marginTop: "8px" },
 };
 
 const TITLES = ["Dr.", "Prof."];
 const STANDARD_LOCATIONS = ["Berlin", "Düsseldorf", "Munich"];
+
+function normalizeDomainsFromLecturerRow(x) {
+  // Preferred future shape: x.domains = [{id, name}] or ["Networking", ...]
+  if (Array.isArray(x.domains)) {
+    return x.domains
+      .map((d) => {
+        if (typeof d === "string") return { id: null, name: d };
+        if (d && typeof d === "object") return { id: d.id ?? null, name: d.name ?? "" };
+        return null;
+      })
+      .filter((d) => d && d.name);
+  }
+
+  // Current shape fallback: single domain string
+  if (x.domain && typeof x.domain === "string") {
+    return [{ id: x.domain_id ?? null, name: x.domain }];
+  }
+
+  return [];
+}
 
 export default function LecturerOverview() {
   const [lecturers, setLecturers] = useState([]);
@@ -186,12 +200,15 @@ export default function LecturerOverview() {
 
   const [customLocations, setCustomLocations] = useState([]);
 
-  // ✅ Domains from DB: [{id, name}]
+  // Domains from DB: [{id, name}]
   const [domains, setDomains] = useState([]);
 
   const [showDomainModal, setShowDomainModal] = useState(false);
   const [newDomain, setNewDomain] = useState("");
   const [domainError, setDomainError] = useState("");
+
+  // For selecting domains in the form (dropdown -> adds a tag)
+  const [domainPick, setDomainPick] = useState("");
 
   const [draft, setDraft] = useState({
     firstName: "",
@@ -203,8 +220,8 @@ export default function LecturerOverview() {
     phone: "",
     location: "",
     teachingLoad: "",
-    // ✅ store domain_id in draft (string from <select>)
-    domain_id: "",
+    // NEW: multiple domain ids
+    domain_ids: [], // array of strings (select values)
   });
 
   async function loadAll() {
@@ -212,21 +229,34 @@ export default function LecturerOverview() {
     try {
       const [lecData, domData] = await Promise.all([api.getLecturers(), api.getDomains()]);
 
-      const mapped = (Array.isArray(lecData) ? lecData : []).map((x) => ({
-        id: x.id,
-        firstName: x.first_name,
-        lastName: x.last_name,
-        title: x.title || "",
-        employmentType: x.employment_type,
-        personalEmail: x.personal_email || "",
-        mdhEmail: x.mdh_email || "",
-        phone: x.phone || "",
-        location: x.location || "",
-        teachingLoad: x.teaching_load || "",
-        domain: x.domain || "", // label from backend
-        domain_id: x.domain_id ?? null,
-        fullName: `${x.first_name} ${x.last_name || ""}`.trim(),
-      }));
+      const mapped = (Array.isArray(lecData) ? lecData : []).map((x) => {
+        const domainsArr = normalizeDomainsFromLecturerRow(x);
+
+        // If backend already provides domain_ids, use them.
+        // Otherwise fallback to single domain_id (if any).
+        const domainIdsFromApi =
+          Array.isArray(x.domain_ids) && x.domain_ids.length
+            ? x.domain_ids.map((id) => String(id))
+            : x.domain_id != null
+              ? [String(x.domain_id)]
+              : [];
+
+        return {
+          id: x.id,
+          firstName: x.first_name,
+          lastName: x.last_name,
+          title: x.title || "",
+          employmentType: x.employment_type,
+          personalEmail: x.personal_email || "",
+          mdhEmail: x.mdh_email || "",
+          phone: x.phone || "",
+          location: x.location || "",
+          teachingLoad: x.teaching_load || "",
+          domains: domainsArr, // [{id, name}]
+          domain_ids: domainIdsFromApi, // ["1","2"]
+          fullName: `${x.first_name} ${x.last_name || ""}`.trim(),
+        };
+      });
 
       setLecturers(mapped);
 
@@ -235,7 +265,6 @@ export default function LecturerOverview() {
         .filter((loc) => loc && loc.trim() !== "" && !STANDARD_LOCATIONS.includes(loc));
       setCustomLocations([...new Set(existingCustom)].sort());
 
-      // ✅ domains from DB
       const doms = Array.isArray(domData) ? domData : [];
       setDomains(doms.map((d) => ({ id: d.id, name: d.name })));
     } catch (e) {
@@ -253,6 +282,7 @@ export default function LecturerOverview() {
 
   function openAdd() {
     setEditingId(null);
+    setDomainPick("");
     setDraft({
       firstName: "",
       lastName: "",
@@ -263,13 +293,14 @@ export default function LecturerOverview() {
       phone: "",
       location: "",
       teachingLoad: "",
-      domain_id: "",
+      domain_ids: [],
     });
     setFormMode("add");
   }
 
   function openEdit(row) {
     setEditingId(row.id);
+    setDomainPick("");
     setDraft({
       firstName: row.firstName || "",
       lastName: row.lastName || "",
@@ -280,7 +311,7 @@ export default function LecturerOverview() {
       phone: row.phone || "",
       location: row.location || "",
       teachingLoad: row.teachingLoad || "",
-      domain_id: row.domain_id != null ? String(row.domain_id) : "",
+      domain_ids: Array.isArray(row.domain_ids) ? row.domain_ids : [],
     });
     setFormMode("edit");
   }
@@ -320,10 +351,28 @@ export default function LecturerOverview() {
     setDomainError("");
   }
 
-  // ✅ Create domain in DB, then add it to dropdown + select it
+  // Add selected domain from dropdown as a tag
+  function addPickedDomain() {
+    const picked = (domainPick || "").trim();
+    if (!picked) return;
+
+    setDraft((prev) => {
+      if (prev.domain_ids.includes(picked)) return prev;
+      return { ...prev, domain_ids: [...prev.domain_ids, picked] };
+    });
+    setDomainPick("");
+  }
+
+  function removeDomainTag(domainIdStr) {
+    setDraft((prev) => ({
+      ...prev,
+      domain_ids: prev.domain_ids.filter((id) => id !== domainIdStr),
+    }));
+  }
+
+  // Create domain in DB, then add it to list + select it (as a tag)
   async function confirmAddDomain() {
     const formatted = (newDomain || "").trim();
-
     if (!formatted) {
       setDomainError("Domain name cannot be empty.");
       return;
@@ -331,18 +380,20 @@ export default function LecturerOverview() {
 
     try {
       const created = await api.createDomain({ name: formatted });
-
-      const createdObj = {
-        id: created.id,
-        name: created.name,
-      };
+      const createdObj = { id: created.id, name: created.name };
 
       const next = [...domains.filter((d) => d.id !== createdObj.id), createdObj].sort((a, b) =>
         a.name.localeCompare(b.name)
       );
-
       setDomains(next);
-      setDraft({ ...draft, domain_id: String(createdObj.id) });
+
+      // auto-add as tag
+      const createdIdStr = String(createdObj.id);
+      setDraft((prev) => ({
+        ...prev,
+        domain_ids: prev.domain_ids.includes(createdIdStr) ? prev.domain_ids : [...prev.domain_ids, createdIdStr],
+      }));
+
       closeDomainModal();
     } catch (e) {
       setDomainError(e.message || "Error creating domain.");
@@ -374,8 +425,9 @@ export default function LecturerOverview() {
       phone: draft.phone.trim() || null,
       location: draft.location.trim() || null,
       teaching_load: draft.teachingLoad.trim() || null,
-      // ✅ send domain_id (not domain string)
-      domain_id: draft.domain_id ? Number(draft.domain_id) : null,
+
+      // NEW: multiple domains (backend will implement later)
+      domain_ids: (draft.domain_ids || []).map((x) => Number(x)),
     };
 
     try {
@@ -395,14 +447,24 @@ export default function LecturerOverview() {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return lecturers;
-    return lecturers.filter(
-      (l) =>
+
+    return lecturers.filter((l) => {
+      const domainText = (l.domains || []).map((d) => d.name).join(" ").toLowerCase();
+      return (
         l.fullName.toLowerCase().includes(q) ||
         (l.location || "").toLowerCase().includes(q) ||
-        (l.domain || "").toLowerCase().includes(q) ||
+        domainText.includes(q) ||
         (l.title || "").toLowerCase().includes(q)
-    );
+      );
+    });
   }, [lecturers, query]);
+
+  // helper: domain id -> name
+  const domainNameById = useMemo(() => {
+    const map = new Map();
+    domains.forEach((d) => map.set(String(d.id), d.name));
+    return map;
+  }, [domains]);
 
   return (
     <div style={styles.container}>
@@ -445,8 +507,33 @@ export default function LecturerOverview() {
                 </td>
                 <td style={styles.td}>{l.employmentType}</td>
                 <td style={styles.td}>{l.location || "-"}</td>
-                <td style={styles.td}>{l.domain || "-"}</td>
-                <td style={styles.td}>{l.mdhEmail || "-"}</td>
+
+                {/* Domains as tags */}
+                <td style={styles.td}>
+                  {l.domains && l.domains.length ? (
+                    <div style={styles.tagWrap}>
+                      {l.domains.map((d, idx) => (
+                        <span key={`${d.name}-${idx}`} style={styles.tag}>
+                          {d.name}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    "-"
+                  )}
+                </td>
+
+                {/* Clickable email */}
+                <td style={styles.td}>
+                  {l.mdhEmail ? (
+                    <a href={`mailto:${l.mdhEmail}`} style={{ color: "#0b5ed7", textDecoration: "none" }}>
+                      {l.mdhEmail}
+                    </a>
+                  ) : (
+                    "-"
+                  )}
+                </td>
+
                 <td style={styles.td}>{l.teachingLoad || "-"}</td>
 
                 <td style={{ ...styles.td, textAlign: "right", whiteSpace: "nowrap" }}>
@@ -478,11 +565,7 @@ export default function LecturerOverview() {
 
             <div style={styles.formGroup}>
               <label style={styles.label}>Title</label>
-              <select
-                style={styles.select}
-                value={draft.title}
-                onChange={(e) => setDraft({ ...draft, title: e.target.value })}
-              >
+              <select style={styles.select} value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })}>
                 {TITLES.map((t) => (
                   <option key={t} value={t}>
                     {t}
@@ -540,12 +623,7 @@ export default function LecturerOverview() {
                     )}
                   </select>
 
-                  <button
-                    type="button"
-                    title="Add new location"
-                    onClick={addNewLocation}
-                    style={{ ...styles.iconBtn, background: "#e2e6ea" }}
-                  >
+                  <button type="button" title="Add new location" onClick={addNewLocation} style={{ ...styles.iconBtn, background: "#e2e6ea" }}>
                     +
                   </button>
 
@@ -580,15 +658,29 @@ export default function LecturerOverview() {
               </div>
             </div>
 
-            {/* ✅ Domain selector uses DB domains + domain_id */}
+            {/* MULTI-DOMAIN TAG INPUT */}
             <div style={styles.formGroup}>
-              <label style={styles.label}>Domain</label>
+              <label style={styles.label}>Domains</label>
+
+              {/* Selected tags */}
+              <div style={{ ...styles.tagWrap, marginBottom: "10px" }}>
+                {(draft.domain_ids || []).length ? (
+                  draft.domain_ids.map((idStr) => (
+                    <span key={idStr} style={styles.tag}>
+                      {domainNameById.get(idStr) || `Domain #${idStr}`}
+                      <button type="button" style={styles.tagX} onClick={() => removeDomainTag(idStr)} aria-label="Remove domain">
+                        ×
+                      </button>
+                    </span>
+                  ))
+                ) : (
+                  <span style={{ color: "#6b7280", fontSize: "0.9rem" }}>No domains selected</span>
+                )}
+              </div>
+
+              {/* Picker row */}
               <div style={{ display: "flex", gap: "5px" }}>
-                <select
-                  style={{ ...styles.select, flex: 1 }}
-                  value={draft.domain_id}
-                  onChange={(e) => setDraft({ ...draft, domain_id: e.target.value })}
-                >
+                <select style={{ ...styles.select, flex: 1 }} value={domainPick} onChange={(e) => setDomainPick(e.target.value)}>
                   <option value="">-- Select Domain --</option>
                   {domains.map((d) => (
                     <option key={d.id} value={String(d.id)}>
@@ -597,13 +689,17 @@ export default function LecturerOverview() {
                   ))}
                 </select>
 
+                <button type="button" title="Add selected domain" onClick={addPickedDomain} style={{ ...styles.iconBtn, background: "#e2e6ea" }}>
+                  +
+                </button>
+
                 <button
                   type="button"
-                  title="Create domain"
+                  title="Create new domain"
                   onClick={openDomainModal}
                   style={{ ...styles.iconBtn, background: "#e2e6ea" }}
                 >
-                  +
+                  ✚
                 </button>
               </div>
             </div>
@@ -661,7 +757,7 @@ export default function LecturerOverview() {
               </button>
             </div>
 
-            {/* ✅ Create Domain mini modal */}
+            {/* Create Domain mini modal */}
             {showDomainModal && (
               <div style={styles.miniOverlay} onMouseDown={closeDomainModal}>
                 <div style={styles.miniModal} onMouseDown={(e) => e.stopPropagation()}>
@@ -692,10 +788,7 @@ export default function LecturerOverview() {
                   </div>
 
                   <div style={styles.miniFooter}>
-                    <button
-                      style={{ ...styles.btn, background: "#fff", border: "1px solid #ddd" }}
-                      onClick={closeDomainModal}
-                    >
+                    <button style={{ ...styles.btn, background: "#fff", border: "1px solid #ddd" }} onClick={closeDomainModal}>
                       Cancel
                     </button>
                     <button style={{ ...styles.btn, ...styles.primaryBtn }} onClick={confirmAddDomain}>
