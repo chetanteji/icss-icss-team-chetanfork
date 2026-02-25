@@ -146,7 +146,6 @@ export default function ModuleOverview({ onNavigate }) {
     }
   };
 
-  // ✅ SORTED & FORMATTED PROGRAMS FOR DROPDOWNS
   const sortedPrograms = useMemo(() => {
     return [...programs].sort((a, b) => {
       const nameA = `[${a.degree_type || a.level || '-'}] ${a.name}`;
@@ -479,9 +478,10 @@ export default function ModuleOverview({ onNavigate }) {
                         {prog ? (
                           <span
                             style={styles.programLink}
+                            title={`[${prog.degree_type || prog.level || '-'}] ${prog.name}`}
                             onClick={(e) => { e.stopPropagation(); handleProgramClick(prog.id); }}
                           >
-                            {`[${prog.degree_type || prog.level || '-'}] ${prog.name}`}
+                            {prog.acronym || prog.name}
                           </span>
                         ) : (
                           <span style={{ fontStyle: 'italic', color: '#64748b' }}>Global</span>

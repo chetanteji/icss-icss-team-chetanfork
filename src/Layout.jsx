@@ -11,8 +11,7 @@ const Layout = ({ activeTab, setActiveTab, children, currentUserRole, setCurrent
   const [isCollapsed, setIsCollapsed] = useState(false);
   const role = (currentUserRole || "").trim().toLowerCase();
   const isStudent = role === "student";
-
-  // --- Helper Component for Links ---
+  
   const NavLink = ({ id, icon: Icon, label, rolesAllowed = [] }) => {
     const normalizedAllowed = rolesAllowed.map(r => r.toLowerCase());
 
@@ -91,7 +90,6 @@ const Layout = ({ activeTab, setActiveTab, children, currentUserRole, setCurrent
   else if (role === "lecturer") dropdownVal = "Lecturer";
   else if (role === "student") dropdownVal = "Student";
 
-  // --- Section Title Helper (Hides when collapsed) ---
   const SectionTitle = ({ title }) => {
     if (isCollapsed) return <div style={{ height: "20px" }}></div>; // Spacer
     return <div className="nav-section-title" style={{ padding: "0 20px", marginTop: "20px", marginBottom: "8px", fontSize: "0.75rem", textTransform: "uppercase", color: "#64748b", fontWeight: "700" }}>{title}</div>;
