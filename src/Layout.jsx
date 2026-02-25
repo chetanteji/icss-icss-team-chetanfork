@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import {
   Calendar, CalendarDays, CalendarPlus, GraduationCap, BookOpen,
   User, Users, MapPin, Sliders, Clock, ChevronLeft, ChevronRight,
-  Shield, School
+  Shield
 } from "lucide-react";
 import api from "./api";
 import "./App.css";
